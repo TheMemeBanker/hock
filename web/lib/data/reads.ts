@@ -5,6 +5,7 @@
  * unavailable the caller renders a dash, never a made-up number.
  */
 import { Pool } from "pg";
+import { pgSsl } from "@/lib/data/pg-ssl";
 
 type BoardRow = {
   mint: string;
@@ -23,7 +24,7 @@ let pool: Pool | null = null;
 function db(): Pool | null {
   const url = process.env.DATABASE_URL_READONLY || process.env.DATABASE_URL;
   if (!url) return null;
-  if (!pool) pool = new Pool({ connectionString: url, max: 4, ssl: url.includes("localhost") ? undefined : { rejectUnauthorized: false } });
+  if (!pool) pool = new Pool({ connectionString: url, max: 4, ssl: pgSsl(url) });
   return pool;
 }
 

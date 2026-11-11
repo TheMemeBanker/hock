@@ -83,3 +83,7 @@ the pool with the pool authority first, airdrop gas to the gas key, then re-run.
 ## Synthetic markets (devnet/localnet)
 
 `SYNTHETIC_MARKETS=true` swaps DexScreener and Jupiter for `synthetic_markets` rows in the gate and the attestor. Boot refuses the flag on mainnet-beta. Manage rows with `node scripts/synthetic-market.mjs set|list|rm`; see docs/DEVNET_RUNBOOK.md. Gate rows written in this mode carry `synthetic: true` in their checks JSON so a reader can tell them apart.
+
+## Clocks
+
+The program compares feed timestamps with the cluster clock (Clock sysvar), never wall time. Every freshness, staleness and TWAP-history decision in the engine goes through `chainNow()` in src/chain/program.js, which reads the sysvar (cached 2 s). A local validator ran 16 s behind wall time on 2026-11-11 and made the co-sign admit a borrow the program then refused with TwapInsufficientHistory; mainnet lags by seconds, which is enough at the edge. Do not reintroduce `Date.now()` into those paths.

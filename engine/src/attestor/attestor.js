@@ -189,8 +189,7 @@ export async function targetMints() {
 
 export async function attestMint(mint, { force = false } = {}) {
   const conn = connection();
-  const nowTs = Math.floor(Date.now() / 1000);
-  const feed = await readPriceFeed(conn, mint, nowTs);
+  const feed = await readPriceFeed(conn, mint); // chain clock, see program.js chainNow
 
   if (!feed) {
     const sig = await sendInitializePriceFeed(mint).catch((e) => { throw new Error(`initialize_price_feed failed: ${e.message}`); });

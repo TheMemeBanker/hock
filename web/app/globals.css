@@ -54,3 +54,34 @@ img { max-width: 100%; }
 .pill.launched { background: #E6E9EE; color: var(--muted); }
 .pill.delisted { background: var(--pink-lite); color: #B3104F; }
 @media (max-width: 700px) { .btn { width: 100%; } }
+
+/* ---- site header: logo | nav | wallet on desktop; logo + wallet on row one and a single-row nav on row two on phones ---- */
+.site-header { display: grid; grid-template-columns: auto 1fr auto; grid-template-areas: "logo nav wallet"; align-items: center; column-gap: 24px; row-gap: 14px; padding: 22px 0; }
+.site-logo { grid-area: logo; }
+.site-nav { grid-area: nav; display: flex; justify-content: flex-end; gap: 32px; font-size: 16px; font-weight: 600; }
+.site-nav a { color: var(--body); white-space: nowrap; }
+.site-nav a:hover { color: var(--ink); }
+.site-wallet { grid-area: wallet; }
+.site-wallet .btn { width: auto; }
+@media (max-width: 760px) {
+  .site-header { grid-template-columns: 1fr auto; grid-template-areas: "logo wallet" "nav nav"; padding: 16px 0 10px; }
+  .site-logo .wm { font-size: 26px !important; }
+  .site-nav { justify-content: space-between; gap: 8px; font-size: 15px; border-top: 1px solid var(--line); padding-top: 12px; }
+  .site-wallet .btn { padding: 10px 14px; font-size: 14px; }
+}
+
+/* ---- responsive rules formerly in styled-jsx blocks (not compiled here) ---- */
+/* from app/launch/LaunchForm.tsx */
+@media (max-width: 860px) { .launch-grid { grid-template-columns: 1fr !important; } }
+        @media (max-width: 560px) { .two, .three { grid-template-columns: 1fr !important; } }
+
+/* ---- docs section list: sticky column on desktop, one scrolling row of chips on phones ---- */
+.doc-nav { flex: 0 0 200px; display: grid; gap: 8px; position: sticky; top: 24px; }
+.doc-nav a { color: var(--muted); font-weight: 500; border-left: 3px solid transparent; padding-left: 12px; white-space: nowrap; }
+.doc-nav a.current { color: var(--ink); font-weight: 800; border-left-color: var(--green); }
+@media (max-width: 860px) {
+  .doc-nav { flex: 1 1 100%; position: static; display: flex; gap: 8px; overflow-x: auto; padding-bottom: 6px; margin-bottom: -16px; scrollbar-width: none; }
+  .doc-nav::-webkit-scrollbar { display: none; }
+  .doc-nav a { border-left: 0; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 14px; }
+  .doc-nav a.current { border-color: var(--green); background: var(--green-lite); }
+}

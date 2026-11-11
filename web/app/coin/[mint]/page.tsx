@@ -84,9 +84,9 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
 
           <article className="card" style={{ display: "grid", gap: 18 }}>
             <h2 style={{ margin: 0, fontSize: 22 }}>On-chain price</h2>
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 16 }}>
-              <Stat label="Attested spot" value={fmtPriceLamports(feed?.latest?.priceLamports ?? null)} sub="per whole token" />
-              <Stat label="TWAP 30 min" value={fmtPriceLamports(feed?.twap?.price ?? null)} sub={feed?.twap ? `${feed.twap.samples} samples` : "insufficient history"} />
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 16 }}>
+              <Stat label="Attested spot" value={fmtPriceLamports(feed?.latest?.priceLamports ?? null).replace(/ SOL$/, "")} sub="SOL per whole token" />
+              <Stat label="TWAP 30 min" value={fmtPriceLamports(feed?.twap?.price ?? null).replace(/ SOL$/, "")} sub={feed?.twap ? `SOL · ${feed.twap.samples} samples` : "insufficient history"} />
               <Stat label="Feed age" value={fmtAge(feed?.ageSeconds)} sub={feed ? (feed.fresh ? "within 120 s" : "stale") : "no feed"} />
               <Stat label="Samples" value={feed ? String(feed.count) : DASH} sub="of 32 ring slots" />
             </div>
@@ -102,7 +102,7 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
             <h2 style={{ margin: 0, fontSize: 22 }}>Market</h2>
             <span style={{ fontSize: 14, color: "var(--muted)" }}>{market ? `${market.pairs} pool${market.pairs === 1 ? "" : "s"} · best on ${market.dex ?? "unknown dex"} · refreshed every 10 s` : "no pool found on this cluster"}</span>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 16 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 16 }}>
             <Stat label="Market cap" value={fmtUsd(market?.marketCapUsd)} sub="DexScreener" />
             <Stat label="Price" value={fmtUsd(market?.priceUsd)} sub={market?.priceSol ? `${market.priceSol.toPrecision(3)} SOL` : "per whole token"} />
             <Stat label="Liquidity" value={fmtUsd(market?.liquidityUsd)} sub="all pools" />

@@ -124,8 +124,31 @@ export function loanTokenVaultPda(pool = poolPda(), pid = programId()) {
 }
 
 // ---- decoders ---------------------------------------------------------------
+/**
+ * Decode a program account. The Anchor coder returns the IDL's snake_case field
+ * names (engine_authority, due_timestamp, ...). Lifted modules read camelCase
+ * (engineAuthority, dueTimestamp, ...), so every decoded object carries both
+ * spellings; the camelCase ones are non-enumerable aliases of the same values.
+ */
 export function decodeAccount(name, data) {
-  return getCoder().accounts.decode(name, data);
+  return addCamelAliases(getCoder().accounts.decode(name, data));
+}
+
+function isPlainObject(v) {
+  return v !== null && typeof v === "object" && Object.getPrototypeOf(v) === Object.prototype;
+}
+
+/** Recursively add camelCase aliases to plain objects (nested structs, arrays of structs); PublicKey/BN/enums are left alone. */
+export function addCamelAliases(v) {
+  if (Array.isArray(v)) { for (const el of v) addCamelAliases(el); return v; }
+  if (!isPlainObject(v)) return v;
+  for (const key of Object.keys(v)) {
+    addCamelAliases(v[key]);
+    if (!key.includes("_")) continue;
+    const camel = key.replace(/^_+/, "").replace(/_([a-z0-9])/g, (_, c) => c.toUpperCase());
+    if (camel && !(camel in v)) Object.defineProperty(v, camel, { value: v[key], enumerable: false, writable: true, configurable: true });
+  }
+  return v;
 }
 
 let _poolCache = { at: 0, value: null };
@@ -144,9 +167,15 @@ export async function fetchLoan(conn, loanPk) {
   return decodeAccount("Loan", info.data);
 }
 
+/** Anchor decodes enum variants under their IDL spelling ("Active"); normalise to lower case before comparing. */
+export function statusKey(status) {
+  if (!status || typeof status !== "object") return "unknown";
+  const k = Object.keys(status)[0];
+  return k ? k.toLowerCase() : "unknown";
+}
+
 export function loanStatusName(status) {
-  if (!status) return "unknown";
-  const k = Object.keys(status)[0] || "unknown";
+  const k = statusKey(status);
   return { active: "open", repaid: "repaid", liquidated: "liquidated" }[k] || k;
 }
 
@@ -161,12 +190,35 @@ export async function mintTokenProgram(conn, mint) {
  * does: latest sample, TWAP over TWAP_WINDOW_SECONDS, oldest-sample age.
  * Returns null when the feed account does not exist.
  */
-export async function readPriceFeed(conn, mint, nowTs = Math.floor(Date.now() / 1000)) {
+const SYSVAR_CLOCK = new PublicKey("SysvarC1ock11111111111111111111111111111111");
+let _clockCache = { at: 0, chainTs: 0, wallMs: 0 };
+/**
+ * The cluster's clock (Clock sysvar unix_timestamp), which is what the program
+ * compares feed timestamps against. It lags wall time by seconds on mainnet and
+ * more on a slow local validator (16 s observed 2026-11-11), so every freshness
+ * or TWAP-history decision made here uses it, never Date.now(). Cached 2 s and
+ * extrapolated with the wall clock between refreshes; falls back to wall time
+ * minus a 5 s margin if the sysvar cannot be read.
+ */
+export async function chainNow(conn = connection()) {
+  const wallMs = Date.now();
+  if (_clockCache.at && wallMs - _clockCache.at < 2_000) return _clockCache.chainTs + Math.floor((wallMs - _clockCache.wallMs) / 1000);
+  try {
+    const info = await conn.getAccountInfo(SYSVAR_CLOCK, "processed");
+    const ts = Number(info.data.readBigInt64LE(32));
+    _clockCache = { at: wallMs, chainTs: ts, wallMs };
+    return ts;
+  } catch {
+    return Math.floor(wallMs / 1000) - 5;
+  }
+}
+
+export async function readPriceFeed(conn, mint, nowTs = null) {
   const pda = priceFeedPda(mint);
-  const info = await conn.getAccountInfo(pda, "confirmed");
+  const [info, now] = await Promise.all([conn.getAccountInfo(pda, "confirmed"), nowTs == null ? chainNow(conn) : Promise.resolve(nowTs)]);
   if (!info) return null;
   const feed = decodeAccount("PriceHistory", info.data);
-  return summarisePriceFeed(feed, nowTs, pda);
+  return summarisePriceFeed(feed, now, pda);
 }
 
 export function summarisePriceFeed(feed, nowTs, pda = null) {

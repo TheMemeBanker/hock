@@ -38,7 +38,7 @@ export async function dryRunArmedOrder(orderId) {
     return { ok: false, phase: "chain_read", reason: "rpc_error", detail: err.message };
   }
   if (!chainLoan) return { ok: false, phase: "chain_read", reason: "loan_missing_on_chain", action: "cancel" };
-  const statusKey = Object.keys(chainLoan.status)[0];
+  const statusKey = (Object.keys(chainLoan.status || {})[0] || "").toLowerCase();
   if (statusKey !== "active") return { ok: false, phase: "preflight_gates", reason: "loan_no_longer_active", action: "cancel", detail: statusKey };
   if (BigInt(chainLoan.repayAmount.toString()) === 0n) return { ok: false, phase: "preflight_gates", reason: "loan_already_fully_repaid", action: "cancel" };
   if (BigInt(chainLoan.armedTriggerPrice.toString()) === 0n) {

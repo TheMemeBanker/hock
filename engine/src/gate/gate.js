@@ -186,9 +186,9 @@ async function persist(mintRow, state, grade, verdict) {
   await query(
     `INSERT INTO gate_state (mint, verdict, liquidity_ok, velocity_ok, routability_ok, holders_ok, extensions_ok, consecutive_passes,
         liquidity_usd, volume_24h_usd, volume_1h_usd, route_quote_sol, top10_holder_pct, reason, graded_at, promoted_at, delisted_at, updated_at)
-     VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,now(),
-        CASE WHEN $2 = 'collateral_ready' AND $15 <> 'collateral_ready' THEN now() ELSE NULL END,
-        CASE WHEN $2 = 'delisted' THEN now() ELSE NULL END, now())
+     VALUES ($1,$2::gate_verdict,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,now(),
+        CASE WHEN $2::text = 'collateral_ready' AND $15::text <> 'collateral_ready' THEN now() ELSE NULL END,
+        CASE WHEN $2::text = 'delisted' THEN now() ELSE NULL END, now())
      ON CONFLICT (mint) DO UPDATE SET
         verdict = EXCLUDED.verdict, liquidity_ok = EXCLUDED.liquidity_ok, velocity_ok = EXCLUDED.velocity_ok,
         routability_ok = EXCLUDED.routability_ok, holders_ok = EXCLUDED.holders_ok, extensions_ok = EXCLUDED.extensions_ok,

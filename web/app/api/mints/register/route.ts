@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { Pool } from "pg";
+import { pgSsl } from "@/lib/data/pg-ssl";
 import { Connection, PublicKey } from "@solana/web3.js";
 
 export const runtime = "nodejs";
@@ -9,7 +10,7 @@ let pool: Pool | null = null;
 function db() {
   const url = process.env.DATABASE_URL;
   if (!url) return null;
-  if (!pool) pool = new Pool({ connectionString: url, max: 2, ssl: url.includes("localhost") ? undefined : { rejectUnauthorized: false } });
+  if (!pool) pool = new Pool({ connectionString: url, max: 2, ssl: pgSsl(url) });
   return pool;
 }
 

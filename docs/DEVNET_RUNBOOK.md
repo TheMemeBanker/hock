@@ -38,7 +38,18 @@ Record the deployed slot and the `.so` sha256 in `docs/DEPLOYMENTS.md`.
 
 ## 3. Initialise the pool
 
-`initialize_pool(protocol_fee_bps, keeper_reward_bps, engine_authority)` signed by the pool authority, with `fee_wallet` = the fee keypair's wSOL token account (create it first). The pool PDA is `["pool", authority]`. Use `program/scripts/init-pool.mjs` (to be added by the engine work) or the matrix harness's init path. Then `set_paused(false)` is not needed; pools start live. Deposit a few devnet SOL so loans can fund.
+`initialize_pool(protocol_fee_bps, keeper_reward_bps, engine_authority)` signed by the pool authority, with `fee_wallet` = the fee keypair's wSOL token account (create it first). The pool PDA is `["pool", authority]`. Use `program/scripts/init-pool.mjs`:
+
+```
+cd program
+SOLANA_RPC_URL=https://api.devnet.solana.com \
+POOL_AUTHORITY_KEYPAIR_PATH=~/hock-keys/hock-devnet-pool-authority.json \
+ENGINE_AUTHORITY_KEYPAIR_PATH=~/hock-keys/hock-devnet-engine.json \
+FEE_KEYPAIR_PATH=~/hock-keys/hock-devnet-fee.json \
+node scripts/init-pool.mjs --protocol-fee-bps 100 --keeper-reward-bps 100 --seed-sol 5
+```
+
+It creates the fee owner's wSOL account, sends `initialize_pool`, optionally deposits `--seed-sol` from the pool authority as the first lender, and prints `POOL_PDA=` for the engine and web env. It is idempotent. Pools start live; `set_paused` is not needed.
 
 ## 4. Database
 
@@ -80,3 +91,14 @@ The mint must already be in `mints` (launch it on the site, or POST `/api/mints/
 ## Launching on devnet
 
 PumpPortal and the pump.fun curve are mainnet-only. On a test cluster the launch form takes the same inputs and creates a Token-2022 test mint instead: MetadataPointer plus TokenMetadata extensions carrying name, symbol and the Irys/Pinata URI, 1,000,000,000 supply minted to the launcher, mint authority revoked. The transaction is simulated against `/api/rpc` before the wallet is asked to sign. The mainnet path now simulates the PumpPortal transaction the same way before signing.
+
+## Proving the lifecycle (any test cluster)
+
+With the engine (synthetic markets on) and the web app running against the cluster:
+
+```
+cd engine
+node scripts/lifecycle-localnet.mjs        # WEB_URL / COSIGN_URL override the defaults
+```
+
+It launches a Token-2022 test mint, registers it through the real `/api/mints/register` route, sets a synthetic market, waits for the gate to promote and the attestor to fill the feed (8 samples over 300 s), borrows through the co-sign relay, waits for the reconciler to index the loan, arms a stop-loss, drops the synthetic price and checks the watcher attempts the fire and fails cleanly (no swap router exists off mainnet), then disarms and repays and checks every token came back. Eleven PASS lines is the bar before anything moves to the next cluster. First complete local run: 2026-11-11.

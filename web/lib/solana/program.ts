@@ -142,7 +142,7 @@ const big = (v: BN | number | bigint) => BigInt(v.toString());
 type Raw = any;
 
 function decodeLoan(address: PublicKey, a: Raw): LoanState {
-  const statusKey = Object.keys(a.status ?? {})[0] ?? "active";
+  const statusKey = (Object.keys(a.status ?? {})[0] ?? "active").toLowerCase();
   return {
     address,
     loanId: big(a.loanId),
@@ -257,7 +257,20 @@ export function computeTwap(samples: PriceSample[], headIndex: number, count: nu
   return { price: weighted / totalWeight, samples: distinct, oldestAgeSeconds: now - coverageStart };
 }
 
-export async function getPriceFeed(program: HockProgram, mint: PublicKey, pool?: PublicKey, now = Math.floor(Date.now() / 1000)): Promise<PriceFeedState | null> {
+const SYSVAR_CLOCK = new PublicKey("SysvarC1ock11111111111111111111111111111111");
+/** Cluster clock (Clock sysvar unix_timestamp): the program judges feed age against this, not the viewer's wall clock. Falls back to wall time minus 5 s. */
+export async function chainNow(connection: Connection): Promise<number> {
+  try {
+    const info = await connection.getAccountInfo(SYSVAR_CLOCK, "processed");
+    if (info) return Number(info.data.readBigInt64LE(32));
+  } catch {
+    /* fall through */
+  }
+  return Math.floor(Date.now() / 1000) - 5;
+}
+
+export async function getPriceFeed(program: HockProgram, mint: PublicKey, pool?: PublicKey, now?: number): Promise<PriceFeedState | null> {
+  if (now === undefined) now = await chainNow(program.provider.connection);
   const poolKey = pool ?? requirePoolPda();
   const [address] = priceFeedPda(mint, poolKey, program.programId);
   const a = await program.account.priceHistory.fetchNullable(address);

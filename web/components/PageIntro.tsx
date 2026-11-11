@@ -14,7 +14,7 @@ export function Stat({ label, value, sub }: { label: string; value: React.ReactN
   return (
     <div style={{ display: "flex", flexDirection: "column", gap: 6, minWidth: 0 }}>
       <span className="lab">{label}</span>
-      <span className="mono" style={{ fontSize: 22, fontWeight: 800, overflowWrap: "anywhere" }}>{value}</span>
+      <span className="mono" style={{ fontSize: "clamp(17px,1.7vw,22px)", fontWeight: 800, overflowWrap: "anywhere", lineHeight: 1.2 }}>{value}</span>
       {sub && <span style={{ fontSize: 13, color: "var(--muted)" }}>{sub}</span>}
     </div>
   );

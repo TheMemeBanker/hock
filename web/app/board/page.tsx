@@ -29,7 +29,7 @@ export default async function BoardPage() {
           <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 860 }}>
             <thead>
               <tr>{["Coin", "Age", "Mkt cap", "Liquidity", "Gate", "LTV", "Borrowable", ""].map((h) => (
-                <th key={h} style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--muted)", textAlign: "left", padding: "14px 18px", borderBottom: "1px solid var(--line)", fontWeight: 800 }}>{h}</th>
+                <th key={h} style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--muted)", textAlign: "left", padding: "14px 18px", borderBottom: "1px solid var(--line)", fontWeight: 800, whiteSpace: "nowrap" }}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>

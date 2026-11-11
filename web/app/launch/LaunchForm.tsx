@@ -226,10 +226,6 @@ export function LaunchForm() {
         </div>
         <p style={{ margin: "12px 4px 0", fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>This is exactly how the coin's card looks on the board. Once it clears the gate the badge turns to Collateral ready and a Hock button appears.</p>
       </aside>
-      <style jsx>{`
-        @media (max-width: 860px) { .launch-grid { grid-template-columns: 1fr !important; } }
-        @media (max-width: 560px) { .two, .three { grid-template-columns: 1fr !important; } }
-      `}</style>
     </div>
   );
 }

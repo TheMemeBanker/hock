@@ -31,7 +31,7 @@ export async function runPreFlightGates({ order, loan, chainLoan }) {
   if (!chainLoan) {
     return { ok: false, action: "cancel", reason: "loan_missing_on_chain" };
   }
-  const statusKey = Object.keys(chainLoan.status || {})[0];
+  const statusKey = (Object.keys(chainLoan.status || {})[0] || "").toLowerCase();
   if (statusKey !== "active") {
     return { ok: false, action: "cancel", reason: "loan_no_longer_active", detail: `loan is ${statusKey}` };
   }

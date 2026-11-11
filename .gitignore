@@ -18,3 +18,4 @@ keys/
 web/next-env.d.ts
 program/matrix-state/
 web/tsconfig.tsbuildinfo
+web/AGENTS.md

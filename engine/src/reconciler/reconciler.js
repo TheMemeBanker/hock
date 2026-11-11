@@ -47,6 +47,47 @@ export async function fetchAllLoans(conn = connection()) {
   return accounts.map((a) => ({ pubkey: a.pubkey.toBase58(), loan: decodeAccount("Loan", a.account.data) }));
 }
 
+/**
+ * The chain is the source of truth for limit-close arming: the borrower signs
+ * arm_conversion / disarm_conversion directly, so no API ever inserts an order.
+ * Mirror the loan's armed fields into limit_close_orders so the watcher sees
+ * them: an armed active loan gets one live order (re-armed values replace it),
+ * a disarmed loan's live order becomes `disarmed`, a closed loan's `expired`.
+ * direction byte on chain: 0 = take-profit (fires at or above), 1 = stop-loss
+ * (fires at or below). min_sol_out is computed by the watcher from the oracle
+ * floor at fire time; the column holds 0 until then.
+ */
+export async function mirrorArmedState(loanPda, loan) {
+  const active = loanStatusName(loan.status) === "open";
+  const trigger = BigInt(loan.armed_trigger_price?.toString?.() ?? loan.armed_trigger_price ?? 0);
+  const totalBps = Number(loan.armed_total_bps ?? 0);
+  const convertedBps = Number(loan.armed_converted_bps ?? 0);
+  const armed = active && trigger > 0n && totalBps > 0 && convertedBps < totalBps;
+  const direction = Number(loan.armed_trigger_direction) === 0 ? "take_profit" : "stop_loss";
+  const { rows: live } = await query(`SELECT id, trigger_price::text AS trigger_price, direction, status FROM limit_close_orders WHERE loan_pda = $1 AND status IN ('armed','firing') LIMIT 1`, [loanPda]);
+  const cur = live[0];
+  if (armed) {
+    if (!cur) {
+      await query(
+        `INSERT INTO limit_close_orders (loan_pda, borrower, trigger_price, direction, min_sol_out, status) VALUES ($1,$2,$3,$4,0,'armed')`,
+        [loanPda, loan.borrower.toBase58(), trigger.toString(), direction],
+      );
+      return "armed";
+    }
+    if (cur.status === "armed" && (cur.trigger_price !== trigger.toString() || cur.direction !== direction)) {
+      await query(`UPDATE limit_close_orders SET trigger_price = $2, direction = $3, armed_at = now(), updated_at = now() WHERE id = $1 AND status = 'armed'`, [cur.id, trigger.toString(), direction]);
+      return "rearmed";
+    }
+    return null;
+  }
+  if (cur && cur.status === "armed") {
+    const next = active ? "disarmed" : "expired";
+    await query(`UPDATE limit_close_orders SET status = $2, last_error = $3, updated_at = now() WHERE id = $1 AND status = 'armed'`, [cur.id, next, active ? (convertedBps >= totalBps && totalBps > 0 ? "armed_caps_exhausted" : "disarmed_on_chain") : "loan_closed_on_chain"]);
+    return next;
+  }
+  return null;
+}
+
 export async function runOnce() {
   const conn = connection();
   const slot = await conn.getSlot("confirmed");
@@ -69,6 +110,7 @@ export async function runOnce() {
     );
     // opened_slot is not stored on chain; keep the first value we recorded.
     upserts++;
+    await mirrorArmedState(pubkey, loan);
   }
 
   const { rows: missing } = await query(
@@ -86,6 +128,15 @@ export async function runOnce() {
     [poolPda().toBase58(), pool.totalDeposits.toString(), pool.totalBorrowed.toString(), pool.totalShares.toString(), pool.totalFeesEarned.toString(), slot],
   );
   setGauge("loans_on_chain", seen.size);
+  // Keeper canary: an active loan still unliquidated this long past due means the watcher's
+  // liquidation path is down, unfunded or stalled. Read-only; the alert is the output.
+  const graceS = (Number(process.env.OVERDUE_ALERT_GRACE_MINUTES) || 15) * 60;
+  const nowS = Math.floor(Date.now() / 1000);
+  const overdue = onChain.filter(({ loan }) => loan.pool.toBase58() === poolPda().toBase58() && loanStatusName(loan.status) === "open" && nowS - Number(loan.due_timestamp) > graceS);
+  setGauge("overdue_unliquidated", overdue.length);
+  if (overdue.length) {
+    await notifyAdmin({ kind: "overdue_loans_unliquidated", key: overdue.map((o) => o.pubkey).sort().join(",").slice(0, 200), payload: { count: overdue.length, loans: overdue.slice(0, 20).map((o) => ({ loan_pda: o.pubkey, overdue_minutes: Math.round((nowS - Number(o.loan.due_timestamp)) / 60) })), remedy: "The watcher should have liquidated these. Check /health (watcher heartbeat, gas balance, LIMIT_CLOSE_DISABLED) and the engine log." } });
+  }
   setGauge("pool_total_borrowed", pool.totalBorrowed.toString());
   heartbeat("reconciler", "ok", { on_chain: seen.size, upserts, marked_unknown: missing.length, slot });
 }
