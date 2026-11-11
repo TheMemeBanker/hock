@@ -18,6 +18,7 @@ import "dotenv/config";
 import { applyPendingMigrations } from "../db/migrations-runner.js";
 import { runPreflight } from "./safety/preflight.js";
 import { startHealthServer, stopHealthServer } from "./health/health-server.js";
+import { startCosignServer } from "./cosign/cosign.js";
 import { startAttestor, stopAttestor } from "./attestor/attestor.js";
 import { startGate, stopGate } from "./gate/gate.js";
 import { startWatcher, stopWatcher } from "./watcher/watcher.js";
@@ -72,6 +73,7 @@ async function main() {
   }
 
   startHealthServer();
+  startCosignServer();
   startAttestor();
   startGate();
   startWatcher();
