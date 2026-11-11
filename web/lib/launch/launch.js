@@ -1,6 +1,6 @@
 /* HOCK launch. Builds one pump.fun create transaction via PumpPortal's local API, signed in the user's own wallet.
    Art + metadata pinned to IPFS (relay if configured, else the user's Pinata key) or stored permanently on Irys/Arweave. */
-import { Keypair, VersionedTransaction } from "@solana/web3.js";
+import { Connection, Keypair, VersionedTransaction } from "@solana/web3.js";
 import { pinViaProxy, pinViaPinata, pinViaIrys } from "./metadata.js";
 import { grindVanity } from "./vanity.js";
 import { rpcSend } from "./send.js";
@@ -30,6 +30,23 @@ export async function buildCreateTransaction({ pubkey, meta, uri, mint, buy, sli
   return tx;
 }
 
+/* Simulate a mint-signed create transaction (wallet signature not yet present, so sigVerify is off). Throws on any failure. */
+export async function simulateCreate(tx, rpcs) {
+  let last;
+  for (const url of rpcs) {
+    try {
+      const c = new Connection(url, "confirmed");
+      const sim = await c.simulateTransaction(tx, { sigVerify: false, replaceRecentBlockhash: true });
+      if (sim.value.err) {
+        const logs = (sim.value.logs || []).slice(-4).join(" | ");
+        throw new Error("Simulation failed: " + JSON.stringify(sim.value.err) + (logs ? " — " + logs : ""));
+      }
+      return { units: sim.value.unitsConsumed || 0 };
+    } catch (e) { last = e; if (String(e.message).startsWith("Simulation failed")) throw e; }
+  }
+  throw last || new Error("No RPC could simulate the transaction");
+}
+
 /* Full launch flow: store -> (vanity) -> build -> sign -> send -> confirm. UI hooks: onStatus(text, cls), onStep(n, state). */
 export async function launch({ wallet, pubkey, meta, imageFile, buy, slip = 10, prio = 0.0005, pinataJwt = "", vanity = false, dry = DRY, config = LAUNCH_CONFIG, onStatus = () => {}, onStep = () => {} }) {
   onStep(1); onStatus("Storing art and metadata…");
@@ -49,7 +66,12 @@ export async function launch({ wallet, pubkey, meta, imageFile, buy, slip = 10, 
   if (!mint) mint = Keypair.generate();
   onStatus("Building the create transaction…");
   const tx = await buildCreateTransaction({ pubkey, meta, uri, mint, buy, slip, prio, config });
-  onStep(3); onStatus("Approve the transaction in your wallet…");
+  /* Preflight: simulate the builder's transaction against our own RPC before the wallet is asked for anything.
+     A builder that returns a transaction that would fail (or one that touches programs we do not expect) stops here. */
+  onStatus("Simulating…");
+  const sim = await simulateCreate(tx, config.rpcs);
+  onStatus("Simulated OK" + (sim.units ? " (" + sim.units.toLocaleString("en-US") + " compute units)" : "") + ". Approve the transaction in your wallet…");
+  onStep(3);
   const signed = await wallet.signTransaction(tx);
   if (dry) { onStep(4, "done"); onStatus("Dry run complete: stored, built and signed, not broadcast.", "ok"); return { mint: mint.publicKey.toBase58(), sig: null, uri, dry: true }; }
   onStep(4); onStatus("Sending…");

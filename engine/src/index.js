@@ -26,6 +26,7 @@ import { startReconciler, stopReconciler } from "./reconciler/reconciler.js";
 import { startCanary, stopCanary } from "./canary/canary.js";
 import { startArmedOrderHealthProbe, stopArmedOrderHealthProbe } from "./orders/armed-order-health-probe.js";
 import { closeDb } from "./db/pool.js";
+import { assertSyntheticAllowed, syntheticEnabled } from "./synthetic/synthetic.js";
 
 const BOOT_CHECK = process.argv.includes("--boot-check");
 const REQUIRED = ["PROGRAM_ID", "POOL_PDA", "SOLANA_RPC_URL", "ENGINE_AUTHORITY_KEYPAIR_PATH"];
@@ -37,6 +38,13 @@ function requireEnv() {
     console.error(`[boot] missing required env: ${missing.join(", ")}`);
     process.exit(2);
   }
+  try {
+    assertSyntheticAllowed();
+  } catch (e) {
+    console.error(`[boot] ${e.message}`);
+    process.exit(2);
+  }
+  if (syntheticEnabled()) console.warn("[boot] SYNTHETIC_MARKETS=true: gate and attestor read synthetic_markets rows (devnet/localnet only)");
 }
 
 async function shutdown(signal) {

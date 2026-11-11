@@ -2,12 +2,15 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getBoard } from "@/lib/data/reads";
+import { getMarkets } from "@/lib/data/market";
+import { fmtUsd } from "@/lib/fmt";
 
 export const revalidate = 10;
 export const metadata = { title: "The board" };
 
 export default async function BoardPage() {
   const rows = await getBoard(200);
+  const markets = await getMarkets(rows.map((r) => r.mint));
   const ready = rows.filter((r) => r.verdictClass === "ready").length;
   return (
     <div className="wrap">
@@ -25,13 +28,13 @@ export default async function BoardPage() {
         <div style={{ overflowX: "auto", background: "var(--card)", border: "1px solid var(--line)", borderRadius: 24, boxShadow: "var(--shadow-card)" }}>
           <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 860 }}>
             <thead>
-              <tr>{["Coin", "Age", "Liquidity", "Gate", "LTV", "Borrowable", ""].map((h) => (
+              <tr>{["Coin", "Age", "Mkt cap", "Liquidity", "Gate", "LTV", "Borrowable", ""].map((h) => (
                 <th key={h} style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--muted)", textAlign: "left", padding: "14px 18px", borderBottom: "1px solid var(--line)", fontWeight: 800 }}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
               {rows.length === 0 && (
-                <tr><td colSpan={7} style={{ padding: 28, color: "var(--muted)" }}>Nothing launched yet. <Link href="/launch">Be the first.</Link></td></tr>
+                <tr><td colSpan={8} style={{ padding: 28, color: "var(--muted)" }}>Nothing launched yet. <Link href="/launch">Be the first.</Link></td></tr>
               )}
               {rows.map((r) => (
                 <tr key={r.mint}>
@@ -40,7 +43,8 @@ export default async function BoardPage() {
                     <div className="mono" style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, overflowWrap: "anywhere" }}>{r.mint}</div>
                   </td>
                   <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.age}</td>
-                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.liquidity ?? "—"}</td>
+                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{fmtUsd(markets.get(r.mint)?.marketCapUsd)}</td>
+                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.liquidity ?? fmtUsd(markets.get(r.mint)?.liquidityUsd)}</td>
                   <td style={{ padding: 18, borderBottom: "1px solid var(--line)" }}><span className={`pill ${r.verdictClass}`}>{r.verdictLabel}</span></td>
                   <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.ltv ?? "—"}</td>
                   <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.borrowable ?? "—"}</td>

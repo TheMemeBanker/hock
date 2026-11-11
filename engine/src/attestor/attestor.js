@@ -47,6 +47,7 @@ import {
   MAX_SPOT_VS_TWAP_PUMP_BPS,
 } from "../chain/program.js";
 import { getMintDecimals } from "../watcher/slicing.js";
+import { syntheticMarket, syntheticTickPrice } from "../synthetic/synthetic.js";
 
 const TARGET_INTERVAL_S = Number(process.env.FEED_TARGET_INTERVAL_SECONDS) || 45;
 const MAX_DIVERGENCE = (Number(process.env.ATTESTOR_MAX_DIVERGENCE_PCT) || 5) / 100;
@@ -99,6 +100,12 @@ async function srcPyth(mint) {
 }
 
 export async function crossSourcedPriceLamports(mint, decimals) {
+  // Devnet/localnet: one synthetic source replaces the cross-sourcing (refused on mainnet at boot and on use).
+  const synth = await syntheticMarket(mint);
+  if (synth) {
+    const price = await syntheticTickPrice(synth);
+    return { ok: true, price, agreed: ["synthetic"], sources: [{ name: "synthetic", price: Number(price), error: null }] };
+  }
   const attempts = await Promise.allSettled([
     srcJupiterPrice(mint),
     srcJupiterQuote(mint, decimals),

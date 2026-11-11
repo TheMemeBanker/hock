@@ -6,9 +6,10 @@ import { Footer } from "@/components/Footer";
 import { CopyAddress } from "@/components/CopyAddress";
 import { Stat } from "@/components/PageIntro";
 import { getCoin, ago } from "@/lib/data/reads";
+import { getMarket } from "@/lib/data/market";
 import { getProgram, getPriceFeed, serverConnection, type PriceFeedState } from "@/lib/solana/program";
 import { MEMECOIN_TIERS, pct } from "@/lib/tiers";
-import { fmtAge, fmtPriceLamports, DASH } from "@/lib/fmt";
+import { fmtAge, fmtPriceLamports, fmtUsd, DASH } from "@/lib/fmt";
 import { POOL_PDA, PROGRAM_ID } from "@/lib/solana/constants";
 import { BorrowPanel } from "./BorrowPanel";
 
@@ -37,7 +38,7 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
   } catch {
     notFound();
   }
-  const [coin, feed] = await Promise.all([getCoin(mint), readFeed(mint)]);
+  const [coin, feed, market] = await Promise.all([getCoin(mint), readFeed(mint), getMarket(mint)]);
   if (!coin) notFound();
   const passes = coin.checks.filter((c) => c.ok).length;
 
@@ -95,6 +96,23 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
             {feed && <CopyAddress value={feed.address.toBase58()} label="Feed" size={11} />}
           </article>
         </div>
+
+        <article className="card" style={{ display: "grid", gap: 18 }}>
+          <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
+            <h2 style={{ margin: 0, fontSize: 22 }}>Market</h2>
+            <span style={{ fontSize: 14, color: "var(--muted)" }}>{market ? `${market.pairs} pool${market.pairs === 1 ? "" : "s"} · best on ${market.dex ?? "unknown dex"} · refreshed every 10 s` : "no pool found on this cluster"}</span>
+          </div>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(130px,1fr))", gap: 16 }}>
+            <Stat label="Market cap" value={fmtUsd(market?.marketCapUsd)} sub="DexScreener" />
+            <Stat label="Price" value={fmtUsd(market?.priceUsd)} sub={market?.priceSol ? `${market.priceSol.toPrecision(3)} SOL` : "per whole token"} />
+            <Stat label="Liquidity" value={fmtUsd(market?.liquidityUsd)} sub="all pools" />
+            <Stat label="24h volume" value={fmtUsd(market?.volume24hUsd)} sub={market?.change24hPct == null ? "all pools" : `${market.change24hPct >= 0 ? "+" : ""}${market.change24hPct.toFixed(1)}% 24h`} />
+          </div>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--muted)" }}>
+            Market figures are read live from the dex and shown for context only. Loans are sized from the attested on-chain price above, never from this card.
+            {market?.pairUrl && <> <a href={market.pairUrl} target="_blank" rel="noopener noreferrer">Open the pair</a>.</>}
+          </p>
+        </article>
 
         <article className="card" style={{ display: "grid", gap: 14 }}>
           <h2 style={{ margin: 0, fontSize: 22 }}>Tiers for this coin</h2>

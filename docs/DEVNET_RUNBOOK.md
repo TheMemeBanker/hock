@@ -59,3 +59,24 @@ Launch → coin on the board → attestor initialises and updates its feed → g
 ## 8. Gate to mainnet
 
 Audit of the shipped source, reproducible build hash matching the deployed binary, canaries green for 48 hours, and an explicit go.
+
+## Synthetic markets (devnet and localnet only)
+
+Devnet has no DexScreener pairs and no Jupiter routes, so without help the gate can never pass and the attestor can never price a coin. The engine therefore has a synthetic-market mode:
+
+- `SYNTHETIC_MARKETS=true` in the engine env. The engine exits at boot if this is set while `HOCK_CLUSTER=mainnet-beta` (or unset), and the module re-checks on every use.
+- Rows live in `synthetic_markets` (migration 002). The gate reads liquidity, volume and routability from the row; the holders check and the Token-2022 extension audit stay real (set `--holders` to override the holder percentage, since a fresh test mint is 100 percent held by its launcher). The attestor uses the row's price as its single source and walks it by `--drift` bps per tick when asked, so TWAP and pump-guard paths see motion.
+- Everything on chain is unchanged: staleness, TWAP minimums, the pump guard, the valuation tolerance and the conversion floors are all still enforced by the program.
+
+```
+cd engine
+node scripts/synthetic-market.mjs set <mint> --price-sol 0.000002 --liq 50000 --v24 120000 --v1 6000 --holders 12 --drift 25
+node scripts/synthetic-market.mjs list
+node scripts/synthetic-market.mjs rm <mint>
+```
+
+The mint must already be in `mints` (launch it on the site, or POST `/api/mints/register`). Two gate cycles later it is `collateral_ready`, the attestor initialises and fills the feed (8 samples over at least 300 s), and the borrow panel opens.
+
+## Launching on devnet
+
+PumpPortal and the pump.fun curve are mainnet-only. On a test cluster the launch form takes the same inputs and creates a Token-2022 test mint instead: MetadataPointer plus TokenMetadata extensions carrying name, symbol and the Irys/Pinata URI, 1,000,000,000 supply minted to the launcher, mint authority revoked. The transaction is simulated against `/api/rpc` before the wallet is asked to sign. The mainnet path now simulates the PumpPortal transaction the same way before signing.

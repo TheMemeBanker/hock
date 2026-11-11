@@ -5,6 +5,9 @@ import { useEffect, useMemo, useRef, useState } from "react";
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
+import { CLUSTER, explorerUrl } from "@/lib/solana/constants";
+
+const TEST_CLUSTER = CLUSTER !== "mainnet-beta";
 
 type Step = 1 | 2 | 3 | 4;
 const STEPS: { id: Step; label: string }[] = [
@@ -62,13 +65,40 @@ export function LaunchForm() {
   const canLaunch = wallet.connected && !!name && !!symbol && !!image && agree && !busy;
   const dry = useMemo(() => typeof window !== "undefined" && new URLSearchParams(window.location.search).get("dry") === "1", []);
 
+  function stepHook(n: number, state?: string) {
+    const id = n as Step;
+    if (state === "done") {
+      setDone((d) => { const nd = new Set(d); for (let i = 1; i <= id; i++) nd.add(i as Step); return nd; });
+      setStep(null);
+    } else {
+      setDone((d) => { const nd = new Set(d); for (let i = 1; i < id; i++) nd.add(i as Step); return nd; });
+      setStep(id);
+    }
+  }
+
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canLaunch || !wallet.publicKey) return;
     setBusy(true); setErr(null); setResult(null); setDone(new Set());
     try {
+      let r: { mint: string; sig: string | null; uri?: string; dry: boolean };
+      if (TEST_CLUSTER) {
+        // Devnet/localnet: PumpPortal is mainnet-only, so create a Token-2022 test mint with on-chain metadata instead.
+        const { launchDevnet } = await import("@/lib/launch/devnet-launch");
+        r = await launchDevnet({
+          wallet: wallet as unknown as Parameters<typeof launchDevnet>[0]["wallet"],
+          pubkey: wallet.publicKey,
+          meta: { name: name.trim(), symbol: symbol.trim().toUpperCase(), description: desc.trim(), twitter: twitter.trim(), telegram: telegram.trim(), website: website.trim() },
+          imageFile: image!,
+          rpcUrl: `${window.location.origin}/api/rpc`,
+          uploadProxy: process.env.NEXT_PUBLIC_UPLOAD_RELAY_URL ?? "",
+          dry,
+          onStatus: (s: string) => setStatus(s),
+          onStep: (n: number, state?: string) => stepHook(n, state),
+        });
+      } else {
       const { launch } = (await import("@/lib/launch/launch")) as unknown as { launch: (o: Record<string, unknown>) => Promise<{ mint: string; sig: string | null; uri?: string; dry: boolean }> };
-      const r = await launch({
+      r = await launch({
         wallet,
         pubkey: wallet.publicKey,
         meta: { name: name.trim(), symbol: symbol.trim().toUpperCase(), description: desc.trim(), twitter: twitter.trim(), telegram: telegram.trim(), website: website.trim() },
@@ -85,17 +115,9 @@ export function LaunchForm() {
           pool: "pump",
         },
         onStatus: (s: string) => setStatus(s),
-        onStep: (n: number, state?: string) => {
-          const id = n as Step;
-          if (state === "done") {
-            setDone((d) => { const nd = new Set(d); for (let i = 1; i <= id; i++) nd.add(i as Step); return nd; });
-            setStep(null);
-          } else {
-            setDone((d) => { const nd = new Set(d); for (let i = 1; i < id; i++) nd.add(i as Step); return nd; });
-            setStep(id);
-          }
-        },
+        onStep: (n: number, state?: string) => stepHook(n, state),
       });
+      }
       const sig: string | null = r.sig ?? null;
       setResult({ mint: r.mint, sig, dry });
       setDone(new Set<Step>([1, 2, 3, 4]));
@@ -132,7 +154,12 @@ export function LaunchForm() {
           </label>
         </div>
 
-        <details style={{ borderTop: "1px dashed var(--line)", paddingTop: 12 }}>
+        {TEST_CLUSTER && (
+          <p style={{ margin: 0, fontSize: 13, color: "var(--body)", lineHeight: 1.6, borderLeft: "3px solid var(--gold)", paddingLeft: 12 }}>
+            <strong>Test cluster ({CLUSTER}).</strong> Launching here creates a Token-2022 test mint with on-chain metadata, mints 1,000,000,000 to your wallet and revokes the mint authority. There is no bonding curve and no PumpPortal on this cluster; the gate grades it against synthetic market rows the engine operator sets.
+          </p>
+        )}
+        <details style={{ borderTop: "1px dashed var(--line)", paddingTop: 12 }} hidden={TEST_CLUSTER}>
           <summary style={{ cursor: "pointer", fontSize: 14, color: "var(--muted)", listStyle: "none" }}>Options</summary>
           <div style={{ display: "grid", gap: 14, marginTop: 14 }}>
             <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 14 }} className="three">
@@ -149,7 +176,7 @@ export function LaunchForm() {
               <input type="checkbox" checked={vanity} onChange={(e) => setVanity(e.target.checked)} style={{ marginTop: 4 }} />
               <span>Mint address ending in <b style={{ color: "var(--ink)" }}>pump</b>. Grinds in your browser, usually a few minutes, skippable.</span>
             </label>
-            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>Creating the coin is free. An initial buy pays the router's 0.5 percent fee. Network fee applies and is shown after the simulation, before you sign.</p>
+            <p style={{ margin: 0, fontSize: 13, color: "var(--muted)", lineHeight: 1.6 }}>Creating the coin is free. An initial buy pays the router's 0.5 percent fee. Every launch is simulated against our RPC before your wallet is asked to sign; the wallet then shows the exact network fee.</p>
           </div>
         </details>
 
@@ -174,7 +201,7 @@ export function LaunchForm() {
         {result && (
           <div style={{ borderRadius: 14, background: "var(--green-lite)", padding: "14px 16px", fontSize: 14, lineHeight: 1.7 }}>
             <div><strong>{result.dry ? "Dry run complete." : "Live."}</strong> Mint <code className="mono" style={{ overflowWrap: "anywhere" }}>{result.mint}</code></div>
-            {result.sig && <div>Transaction <a href={`https://solscan.io/tx/${result.sig}${process.env.NEXT_PUBLIC_HOCK_CLUSTER === "devnet" ? "?cluster=devnet" : ""}`} target="_blank" rel="noopener noreferrer">{result.sig.slice(0, 8)}…{result.sig.slice(-8)}</a></div>}
+            {result.sig && <div>Transaction <a href={explorerUrl("tx", result.sig)} target="_blank" rel="noopener noreferrer">{result.sig.slice(0, 8)}…{result.sig.slice(-8)}</a></div>}
             {!result.dry && <div><Link href={`/coin/${result.mint}`} style={{ fontWeight: 800 }}>Open your coin's page</Link> to watch the gate grade it.</div>}
           </div>
         )}

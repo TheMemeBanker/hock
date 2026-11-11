@@ -55,3 +55,17 @@ export function parseUnits(s: string, decimals: number): bigint | null {
   if (f.length > decimals) return null;
   return BigInt(w || "0") * 10n ** BigInt(decimals) + BigInt((f + "0".repeat(decimals)).slice(0, decimals) || "0");
 }
+
+/** USD figure, magnitude-aware: $1.23M, $45.6k, $812, $0.0412, $0.0000071. */
+export function fmtUsd(v: number | null | undefined, opts: { compact?: boolean } = { compact: true }): string {
+  if (v === null || v === undefined || !Number.isFinite(v)) return DASH;
+  const a = Math.abs(v);
+  if (opts.compact && a >= 1e9) return `$${(v / 1e9).toFixed(2)}B`;
+  if (opts.compact && a >= 1e6) return `$${(v / 1e6).toFixed(2)}M`;
+  if (opts.compact && a >= 1e4) return `$${(v / 1e3).toFixed(1)}k`;
+  if (a >= 1) return `$${v.toLocaleString("en-US", { maximumFractionDigits: 2 })}`;
+  if (a >= 0.01) return `$${v.toFixed(4)}`;
+  if (a === 0) return "$0";
+  const digits = Math.min(12, Math.ceil(-Math.log10(a)) + 3);
+  return `$${v.toFixed(digits)}`;
+}

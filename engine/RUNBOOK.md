@@ -79,3 +79,7 @@ ENGINE_AUTHORITY_KEYPAIR_PATH=... npm run boot-check
 ```
 Without a pool initialised the `pool_account` check fails by design; initialise
 the pool with the pool authority first, airdrop gas to the gas key, then re-run.
+
+## Synthetic markets (devnet/localnet)
+
+`SYNTHETIC_MARKETS=true` swaps DexScreener and Jupiter for `synthetic_markets` rows in the gate and the attestor. Boot refuses the flag on mainnet-beta. Manage rows with `node scripts/synthetic-market.mjs set|list|rm`; see docs/DEVNET_RUNBOOK.md. Gate rows written in this mode carry `synthetic: true` in their checks JSON so a reader can tell them apart.

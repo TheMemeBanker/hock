@@ -35,6 +35,7 @@ import { heartbeat, registerLoop, setGauge } from "../health/liveness.js";
 import { cachedJson } from "../price/http-cache.js";
 import { jupiterQuote } from "../price/pricing.js";
 import { connection, mintTokenProgram } from "../chain/program.js";
+import { syntheticMarket } from "../synthetic/synthetic.js";
 
 const INTERVAL_MS = (Number(process.env.GATE_INTERVAL_SECONDS) || 60) * 1000;
 const MIN_LIQ = Number(process.env.GATE_MIN_LIQUIDITY_USD) || 15_000;
@@ -126,11 +127,21 @@ export async function gradeMint(conn, mintRow) {
   const mint = mintRow.mint;
   const tokenProgram = await mintTokenProgram(conn, mint);
   const mintInfo = await getMint(conn, new PublicKey(mint), "confirmed", tokenProgram);
-  const pairs = await dexPairs(mint).catch(() => []);
-  const market = gradeMarket(pairs);
+  // Devnet/localnet: a synthetic_markets row stands in for DexScreener + Jupiter (never on mainnet; see synthetic.js).
+  const synth = await syntheticMarket(mint);
+  const pairs = synth ? [] : await dexPairs(mint).catch(() => []);
+  const market = synth
+    ? { liquidity_usd: synth.liquidityUsd, volume_24h_usd: synth.volume24hUsd, volume_1h_usd: synth.volume1hUsd, price_sol_per_whole: Number(synth.priceLamports) / 1e9, pairAddresses: [] }
+    : gradeMarket(pairs);
   const [route, holders] = await Promise.all([
-    checkRoutability(mint, mintInfo.decimals, market.price_sol_per_whole),
-    checkHolders(conn, mint, BigInt(mintInfo.supply.toString()), market.pairAddresses).catch((e) => ({ ok: false, pct: null, detail: `holders_failed: ${e.message?.slice(0, 60)}` })),
+    synth
+      ? Promise.resolve(synth.routeOk
+          ? { ok: synth.routeImpactBps <= MAX_IMPACT_BPS, route_quote_sol: REF_SELL_SOL, impact_bps: synth.routeImpactBps, detail: `synthetic impact ${synth.routeImpactBps} bps` }
+          : { ok: false, route_quote_sol: null, impact_bps: null, detail: "synthetic route_ok=false" })
+      : checkRoutability(mint, mintInfo.decimals, market.price_sol_per_whole),
+    synth && synth.holdersPctOverride != null
+      ? Promise.resolve({ ok: synth.holdersPctOverride <= MAX_TOP10_PCT, pct: synth.holdersPctOverride, detail: `synthetic top10 ${synth.holdersPctOverride}%` })
+      : checkHolders(conn, mint, BigInt(mintInfo.supply.toString()), market.pairAddresses).catch((e) => ({ ok: false, pct: null, detail: `holders_failed: ${e.message?.slice(0, 60)}` })),
   ]);
   const ext = auditExtensions(mintInfo, tokenProgram);
   const checks = {
@@ -147,6 +158,7 @@ export async function gradeMint(conn, mintRow) {
     top10_holder_pct: holders.pct,
     extensions: ext.extensions,
     pairs: pairs.length,
+    synthetic: !!synth,
     thresholds: { MIN_LIQ, MIN_V24, MIN_V1, REF_SELL_SOL, MAX_IMPACT_BPS, MAX_TOP10_PCT },
   };
   const failures = [];
