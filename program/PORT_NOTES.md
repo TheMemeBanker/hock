@@ -67,7 +67,28 @@ price feed. No gate had to be loosened for the authority refactor.
 
 ## Test results
 
-RESULTS_PLACEHOLDER
+- `anchor build` (anchor-cli 0.32.1): **clean, 0 warnings**. Artifacts:
+  `target/deploy/hock_lending.so` (659,688 bytes), `target/idl/hock_lending.json`
+  (address = Cr61UnyT3EmbZLMawbwQksX6QgTrSgEWMxAWUbaYpgNb; `initialize_pool` carries
+  the `engine_authority: pubkey` arg and `fee_wallet` account; `set_pool_config`,
+  `PoolConfigUpdated`, `InvalidPoolConfig` present).
+- `cargo test --lib` (host): **25 passed, 0 failed** — the 20 pre-existing unit
+  tests (price history / TWAP gate, price bound, conversion gate, conversion
+  allowance, extend health) + Anchor's generated `test_id` + 4 new
+  `pool_config_tests` (authority rotates and the returned event carries old+new
+  values; non-authority rejected with `Unauthorized` and state untouched; engine
+  may not be zero or the pool authority; fee wallet may not be zero). Host build
+  emits only Anchor's usual `unexpected cfg anchor-debug` warnings.
+- Matrix harness (`scripts/matrix-harness.mjs`): **ported, not yet run** against a
+  local validator (Phase A alone needs ~8 minutes of wall clock for the oracle
+  history and staleness waits, which did not fit the time cap). New cases added:
+  A0a–A0c (init refusals: wrong-mint fee wallet, engine == authority, zero engine),
+  A16b–A16g (set_pool_config: non-authority refused, wrong-mint fee wallet refused,
+  engine == authority refused, authority rotation lands + event log present, old
+  engine refused with `EngineUnauthorized`, new engine passes the signer gate and
+  stops at `MinOutBelowOracleFloor`, then rotate back). All original A/B cases
+  are retained unchanged.
+- Nothing deployed; no cluster touched. No git operations performed here.
 
 ## Files
 
