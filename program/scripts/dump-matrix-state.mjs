@@ -36,11 +36,12 @@ let n = 0;
 for (const [pk, label] of targets) {
   const info = await conn.getAccountInfo(new PublicKey(pk), "confirmed");
   if (!info) { console.log("skip (absent):", label, pk.slice(0, 8)); continue; }
+  // rentEpoch must be the u64 max as an exact integer; JSON.stringify would round a Number, so splice the literal in.
   fs.writeFileSync(path.join(outDir, pk + ".json"), JSON.stringify({
     pubkey: pk,
     account: { lamports: info.lamports, data: [info.data.toString("base64"), "base64"],
-      owner: info.owner.toBase58(), executable: info.executable, rentEpoch: 18446744073709551615 },
-  }));
+      owner: info.owner.toBase58(), executable: info.executable, rentEpoch: "__RENT_EPOCH__" },
+  }).replace('"__RENT_EPOCH__"', "18446744073709551615"));
   n++;
 }
 console.log(`dumped ${n} accounts to ${outDir}`);

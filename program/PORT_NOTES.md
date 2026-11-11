@@ -115,3 +115,7 @@ node scripts/matrix-harness.mjs A      # ~8 min (builds 300 s of oracle history,
 node scripts/dump-matrix-state.mjs     # then restart the validator warped ~2.5 days with the dumped accounts
 node scripts/matrix-harness.mjs B
 ```
+
+## Matrix harness: Phase B without --warp-slot
+
+`solana-test-validator --warp-slot` never exposes RPC on macOS (two strategies, 8 minutes each, 2026-11-11). Phase B now runs on a fresh validator loaded with `--account-dir matrix-state/dump-patched`, where loan3's `start_timestamp` and `due_timestamp` (offsets 179 and 187 of the Loan account) are shifted 3 days into the past; `phaseB()` tops the actors up by airdrop first. Result 2026-11-11: Phase A 38/38, Phase B 7/7 (B1 overdue extend refused, B2a/B2b overdue arm and disarm refused, B3 overdue conversion authorised through every guard, B4 liquidation returns residual collateral, B5 recovery credits total_deposits without minting shares, B6 early liquidation refused with LoanNotDue).

@@ -12,7 +12,9 @@
  * (authority-only, old engine refused after rotation, wrong-mint fee wallet
  * refused), extend healthy/stale, partial repay + final-payment guard.
  *
- * PHASE B (after `--warp-slot` restart, ~2.5 days ahead): overdue extend/arm
+ * PHASE B (fresh validator loaded from matrix-state/dump-patched, where loan3's
+ *   start/due timestamps are shifted 3 days into the past; --warp-slot never
+ *   exposes RPC on macOS): overdue extend/arm
  * refusals, liquidation, recover accounting.
  *
  *   HOCK_PROGRAM_ID  override program id (default: Anchor.toml [programs.localnet])
@@ -466,6 +468,12 @@ async function phaseB() {
   const loan3 = new PublicKey(st.loan3);
   let pxA = BigInt(st.pxA);
   console.log("── Phase B: post-warp (loan3 should now be overdue) ──");
+
+  // On a fresh --account-dir validator the actors arrive with no SOL; top them up.
+  for (const kp of [authority, borrower1, borrower2, depositor, engine]) {
+    if ((await conn.getBalance(kp.publicKey)) < 5 * LAMPORTS_PER_SOL)
+      await conn.requestAirdrop(kp.publicKey, 500 * LAMPORTS_PER_SOL).then((sig) => conn.confirmTransaction(sig));
+  }
 
   // clock must be ≥ 2 days past loan3 creation
   const slot = await conn.getSlot();
