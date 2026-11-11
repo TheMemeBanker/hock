@@ -51,9 +51,10 @@ Accounts
 - `PriceFeed` / `PriceHistory` — per collateral mint: latest attested price, 32-sample ring buffer, TWAP over 1800 s with minimum 8 samples and 300 s of history.
 - `Loan` — borrower, mint, collateral vault, principal, fee, start and due slots, tier, armed limit-close fields (trigger price, min SOL out, consent flag), proceeds vault, accrued pool fees.
 
-Instructions (user-signed): `deposit`, `withdraw`, `request_and_fund_loan`, `repay_loan`, `partial_repay`, `add_collateral`, `extend_loan`, `arm_conversion`, `disarm_conversion`, `recover_liquidated_collateral`.
-Instructions (engine authority): `update_price`, `convert_collateral_slice`, `liquidate_loan`.
-Instructions (pool authority): `initialize_pool`, `initialize_price_feed`, `set_paused`, `set_keeper_reward`, `set_pool_config`, `admin_withdraw` (fees only).
+Instructions (user-signed): `deposit`, `withdraw`, `repay_loan`, `partial_repay`, `add_collateral`, `extend_loan` (healthy loans; an unhealthy loan needs the pool authority to co-sign), `arm_conversion`, `disarm_conversion`.
+Instructions (user-signed AND pool-authority co-signed): `request_and_fund_loan`. The program requires the pool authority on every borrow. That signature is the lender's admission control: the engine's co-sign endpoint re-checks the gate verdict, feed freshness, tier caps and pool liquidity, then signs. The borrower's keys are never involved beyond their own signature; this is not custody.
+Instructions (engine authority): `convert_collateral_slice`, `liquidate_loan`.
+Instructions (pool authority): `initialize_pool`, `initialize_price_feed`, `update_price` (the attestor therefore runs with the pool authority key), `set_paused`, `set_keeper_reward`, `set_pool_config`, `admin_withdraw` (fees only), `recover_liquidated_collateral`.
 
 Gates enforced on chain
 
@@ -80,7 +81,7 @@ Node 20 ESM service. One process, several loops, one health endpoint.
 - **Canaries** — a synthetic loan on devnet, and on mainnet a tiny real loan owned by the operator, armed and fired on a schedule, so the fire path is proven continuously, not assumed.
 - **Health** — `/health` with per-loop heartbeat, feed staleness per mint, RPC failover state, and a stuck-order count. The site reads it to show "engine online" honestly.
 
-Keys the engine holds: its own engine authority (signs `update_price`, `convert_collateral_slice`, `liquidate_loan` only) and a gas wallet. It holds no user keys and no pool authority.
+Keys the engine holds: the pool authority (attestation, borrow co-sign, feed initialisation) and the engine authority (conversions, liquidations), each on its own keypair, plus a gas wallet. It holds no user keys. The pool authority on the engine host is the one privileged key in the system; the sign guard and spend lock wrap every use of it, and `set_pool_config` lets a compromised engine authority be rotated without a redeploy.
 
 ### 2.3 Web (`web/`)
 

@@ -1,62 +1,46 @@
+/**
+ * PDA derivations. Seeds are copied from the #[account(seeds = ...)]
+ * constraints in program/programs/hock-lending/src/lib.rs:
+ *   pool              = ["pool", authority]
+ *   loan-token-vault  = ["loan-token-vault", pool]
+ *   position          = ["position", pool, depositor]
+ *   loan              = ["loan", borrower, loan_id.to_le_bytes()]
+ *   collateral-vault  = ["collateral-vault", loan]
+ *   sol-proceeds      = ["sol-proceeds", loan]
+ *   price feed        = ["price_v3", mint, pool]   (PriceHistory account)
+ */
 import { PublicKey } from "@solana/web3.js";
-import BN from "bn.js";
-import { PROGRAM_ID, PROGRAM_ID_V3, PROGRAM_ID_V4, PROGRAM_ID_V4_1 } from "./TODO-hock-constants";
+import { requireProgramId } from "./constants";
 
-// Each PDA helper accepts an optional `programId` so callers can target
-// v1 (memecoin), v2 (legacy RWA), or v3 (live RWA, since 2026-06-13).
-// V3 uses a distinct "price_v3" seed prefix on its price_feed PDA —
-// passing the v1/v2 "price" seed against the V3 program fails with
-// Anchor ConstraintSeeds (error 2006), which then surfaces in the
-// borrow flow as StalePriceAttestation. See the price-feed helper
-// below for the per-program seed selection. Other PDAs (pool,
-// loan-token-vault, loan, collateral-vault) share the same seed
-// across all three programs.
+const pid = (p?: PublicKey) => p ?? requireProgramId();
 
-export function priceFeedPda(
-  mintPubkey: PublicKey,
-  poolPubkey: PublicKey,
-  programId: PublicKey = PROGRAM_ID,
-) {
-  // V3 and V4 both use the "price_v3" seed name (same TWAP PriceHistory
-  // layout, just different program IDs). V1/V2 use "price". Mis-routing
-  // V4 to "price" surfaces as "Account state mismatch" at borrow time.
-  const isV3 = (!!PROGRAM_ID_V3 && programId.equals(PROGRAM_ID_V3));
-  const isV4 = !!PROGRAM_ID_V4 && programId.equals(PROGRAM_ID_V4);
-  // V4.1 keeps the same "price_v3" seed (verified against its seeds constraint).
-  const isV41 = !!PROGRAM_ID_V4_1 && programId.equals(PROGRAM_ID_V4_1);
-  const seedPrefix = (isV3 || isV4 || isV41) ? "price_v3" : "price";
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from(seedPrefix), mintPubkey.toBuffer(), poolPubkey.toBuffer()],
-    programId,
-  );
+export function poolPda(authority: PublicKey, programId?: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("pool"), authority.toBuffer()], pid(programId));
 }
 
-export function poolPda(authorityPubkey: PublicKey, programId: PublicKey = PROGRAM_ID) {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("pool"), authorityPubkey.toBuffer()],
-    programId,
-  );
+export function loanTokenVaultPda(pool: PublicKey, programId?: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("loan-token-vault"), pool.toBuffer()], pid(programId));
 }
 
-export function loanTokenVaultPda(poolPubkey: PublicKey, programId: PublicKey = PROGRAM_ID) {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("loan-token-vault"), poolPubkey.toBuffer()],
-    programId,
-  );
+export function depositorPositionPda(pool: PublicKey, depositor: PublicKey, programId?: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("position"), pool.toBuffer(), depositor.toBuffer()], pid(programId));
 }
 
-export function loanPda(borrowerPubkey: PublicKey, loanId: BN, programId: PublicKey = PROGRAM_ID) {
-  const idBuf = Buffer.alloc(8);
-  loanId.toArrayLike(Buffer, "le", 8).copy(idBuf);
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("loan"), borrowerPubkey.toBuffer(), idBuf],
-    programId,
-  );
+export function loanPda(borrower: PublicKey, loanId: bigint, programId?: PublicKey) {
+  const id = Buffer.alloc(8);
+  id.writeBigUInt64LE(loanId);
+  return PublicKey.findProgramAddressSync([Buffer.from("loan"), borrower.toBuffer(), id], pid(programId));
 }
 
-export function collateralVaultPda(loanPubkey: PublicKey, programId: PublicKey = PROGRAM_ID) {
-  return PublicKey.findProgramAddressSync(
-    [Buffer.from("collateral-vault"), loanPubkey.toBuffer()],
-    programId,
-  );
+export function collateralVaultPda(loan: PublicKey, programId?: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("collateral-vault"), loan.toBuffer()], pid(programId));
+}
+
+export function solProceedsVaultPda(loan: PublicKey, programId?: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("sol-proceeds"), loan.toBuffer()], pid(programId));
+}
+
+/** PriceHistory PDA (the IDL calls it price_feed in some instructions and price_history in others; same account). */
+export function priceFeedPda(mint: PublicKey, pool: PublicKey, programId?: PublicKey) {
+  return PublicKey.findProgramAddressSync([Buffer.from("price_v3"), mint.toBuffer(), pool.toBuffer()], pid(programId));
 }

@@ -1,16 +1,17 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
+// The launch library is plain JS lifted from a proven launcher; typed loosely here on purpose.
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 import { useWallet } from "@solana/wallet-adapter-react";
 import Link from "next/link";
 
-type Step = "store" | "build" | "simulate" | "sign" | "confirm";
+type Step = 1 | 2 | 3 | 4;
 const STEPS: { id: Step; label: string }[] = [
-  { id: "store", label: "Store" },
-  { id: "build", label: "Build" },
-  { id: "simulate", label: "Simulate" },
-  { id: "sign", label: "Sign" },
-  { id: "confirm", label: "Confirm" },
+  { id: 1, label: "Store" },
+  { id: 2, label: "Build" },
+  { id: 3, label: "Sign" },
+  { id: 4, label: "Confirm" },
 ];
 
 type Result = { mint: string; sig: string | null; dry: boolean };
@@ -42,7 +43,6 @@ export function LaunchForm() {
   const [done, setDone] = useState<Set<Step>>(new Set());
   const [busy, setBusy] = useState(false);
   const [result, setResult] = useState<Result | null>(null);
-  const [simFee, setSimFee] = useState<string | null>(null);
   const fileRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -65,9 +65,9 @@ export function LaunchForm() {
   async function onSubmit(e: React.FormEvent) {
     e.preventDefault();
     if (!canLaunch || !wallet.publicKey) return;
-    setBusy(true); setErr(null); setResult(null); setDone(new Set()); setSimFee(null);
+    setBusy(true); setErr(null); setResult(null); setDone(new Set());
     try {
-      const { launch } = await import("@/lib/launch/launch");
+      const { launch } = (await import("@/lib/launch/launch")) as unknown as { launch: (o: Record<string, unknown>) => Promise<{ mint: string; sig: string | null; uri?: string; dry: boolean }> };
       const r = await launch({
         wallet,
         pubkey: wallet.publicKey,
@@ -81,20 +81,28 @@ export function LaunchForm() {
         config: {
           tradeLocal: process.env.NEXT_PUBLIC_PUMPPORTAL_TRADE_LOCAL ?? "https://pumpportal.fun/api/trade-local",
           uploadProxy: process.env.NEXT_PUBLIC_UPLOAD_RELAY_URL ?? "",
-          rpc: `${window.location.origin}/api/rpc`,
+          rpcs: [`${window.location.origin}/api/rpc`],
+          pool: "pump",
         },
         onStatus: (s: string) => setStatus(s),
-        onStep: (s: Step, state: "doing" | "done", info?: Record<string, unknown>) => {
-          setStep(state === "doing" ? s : null);
-          if (state === "done") setDone((d) => new Set(d).add(s));
-          if (s === "simulate" && info && typeof info.feeSol === "number") setSimFee(`${info.feeSol.toFixed(6)} SOL`);
+        onStep: (n: number, state?: string) => {
+          const id = n as Step;
+          if (state === "done") {
+            setDone((d) => { const nd = new Set(d); for (let i = 1; i <= id; i++) nd.add(i as Step); return nd; });
+            setStep(null);
+          } else {
+            setDone((d) => { const nd = new Set(d); for (let i = 1; i < id; i++) nd.add(i as Step); return nd; });
+            setStep(id);
+          }
         },
       });
-      setResult({ mint: r.mint, sig: r.signature ?? null, dry });
+      const sig: string | null = r.sig ?? null;
+      setResult({ mint: r.mint, sig, dry });
+      setDone(new Set<Step>([1, 2, 3, 4]));
       setStatus(dry ? "Dry run complete. Nothing was broadcast." : "Live. Your coin is on the board and the gate is grading it.");
-      if (!dry && r.signature) {
+      if (!dry && sig) {
         // Register with the gate right away so the board shows it before the indexer catches up.
-        fetch("/api/mints/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mint: r.mint, name, symbol: symbol.toUpperCase(), sig: r.signature, launcher: wallet.publicKey.toBase58(), metadataUri: r.metadataUri ?? null }) }).catch(() => {});
+        fetch("/api/mints/register", { method: "POST", headers: { "content-type": "application/json" }, body: JSON.stringify({ mint: r.mint, name, symbol: symbol.toUpperCase(), sig, launcher: wallet.publicKey.toBase58(), metadataUri: r.uri ?? null }) }).catch(() => {});
       }
     } catch (ex) {
       const m = ex instanceof Error ? ex.message : String(ex);
@@ -153,11 +161,10 @@ export function LaunchForm() {
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
           <button type="submit" className="btn green" disabled={!canLaunch}>{busy ? "Working…" : dry ? "Dry run" : "Launch it"}</button>
           <div aria-live="polite" style={{ fontSize: 14, color: err ? "#B3104F" : "var(--muted)", minWidth: 0 }}>{err ?? status}</div>
-          {simFee && <div className="mono" style={{ fontSize: 13, color: "var(--body)" }}>network fee {simFee}</div>}
         </div>
 
         {(busy || done.size > 0) && (
-          <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(5,minmax(0,1fr))", gap: 8 }}>
+          <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 8 }}>
             {STEPS.map((s) => (
               <li key={s.id} style={{ fontSize: 12, paddingTop: 8, borderTop: `3px solid ${done.has(s.id) ? "var(--green)" : step === s.id ? "var(--gold)" : "var(--line)"}`, color: done.has(s.id) ? "var(--green-2)" : step === s.id ? "var(--ink)" : "var(--muted)", fontWeight: 700 }}>{s.label}</li>
             ))}
