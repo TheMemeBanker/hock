@@ -1,0 +1,15 @@
+{
+  "name": "hock-lending-harness",
+  "version": "0.1.0",
+  "type": "module",
+  "private": true,
+  "description": "Local-validator refusal/acceptance matrix harness for the HOCK lending program.",
+  "scripts": {
+    "matrix": "node scripts/matrix-harness.mjs",
+    "dump": "node scripts/dump-matrix-state.mjs"
+  },
+  "dependencies": {
+    "@solana/web3.js": "^1.95.0",
+    "@solana/spl-token": "^0.4.6"
+  }
+}

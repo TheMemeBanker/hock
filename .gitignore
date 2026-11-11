@@ -1,0 +1,15 @@
+node_modules/
+.next/
+out/
+dist/
+target/
+.anchor/
+test-ledger/
+*.so
+*.log
+.env
+.env.*
+!.env.example
+keys/
+*.json.bak
+.DS_Store

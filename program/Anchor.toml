@@ -1,0 +1,25 @@
+[toolchain]
+anchor_version = "0.32.1"
+
+[features]
+seeds = false
+skip-lint = false
+
+[programs.localnet]
+hock_lending = "Cr61UnyT3EmbZLMawbwQksX6QgTrSgEWMxAWUbaYpgNb"
+
+[programs.devnet]
+hock_lending = "Cr61UnyT3EmbZLMawbwQksX6QgTrSgEWMxAWUbaYpgNb"
+
+[registry]
+url = "https://api.apr.dev"
+
+[provider]
+cluster = "Devnet"
+wallet = "~/hock-keys/hock-devnet-deployer.json"
+
+[scripts]
+test = "node scripts/matrix-harness.mjs"
+
+[workspace]
+members = ["programs/hock-lending"]
