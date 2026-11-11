@@ -88,8 +88,9 @@ export function computeExpiryUrgency(
 ): ExpiryUrgency {
   const unknown: ExpiryUrgency = { tier: "unknown", msLeft: 0, label: "" };
   try {
-    if (typeof dueAt !== "string" && !(dueAt instanceof Date)) return unknown;
-    const due = dueAt instanceof Date ? dueAt.getTime() : Date.parse(dueAt);
+    // Accepts an ISO string, a Date, or epoch milliseconds (the ticket card passes due_timestamp * 1000).
+    if (typeof dueAt !== "string" && typeof dueAt !== "number" && !(dueAt instanceof Date)) return unknown;
+    const due = dueAt instanceof Date ? dueAt.getTime() : typeof dueAt === "number" ? dueAt : Date.parse(dueAt);
     // Date.parse returns NaN for anything it cannot read.
     if (!Number.isFinite(due)) return unknown;
 
