@@ -102,3 +102,12 @@ node scripts/lifecycle-localnet.mjs        # WEB_URL / COSIGN_URL override the d
 ```
 
 It launches a Token-2022 test mint, registers it through the real `/api/mints/register` route, sets a synthetic market, waits for the gate to promote and the attestor to fill the feed (8 samples over 300 s), borrows through the co-sign relay, waits for the reconciler to index the loan, arms a stop-loss, drops the synthetic price and checks the watcher attempts the fire and fails cleanly (no swap router exists off mainnet), then disarms and repays and checks every token came back. Eleven PASS lines is the bar before anything moves to the next cluster. First complete local run: 2026-11-11.
+
+## Web env that the browser flows depend on (learned 2026-11-11)
+
+- `NEXT_PUBLIC_PROGRAM_ID`, `NEXT_PUBLIC_POOL_PDA`, `NEXT_PUBLIC_HOCK_CLUSTER` are inlined at build time; rebuild the site after changing them.
+- `NEXT_PUBLIC_COSIGN_URL` is the engine relay origin; the browser posts to `<origin>/cosign/borrow`, and that origin is added to the page's connect-src automatically.
+- The engine needs `HOCK_ALLOWED_ORIGINS` to include the site origin(s) or the relay's CORS reply is empty and every borrow fails at signing.
+- `/api/rpc` budgets: `RPC_PROXY_READS_PER_MINUTE` (default 400) and `RPC_PROXY_WRITES_PER_MINUTE` (default 40) per IP.
+- Test clusters: `NEXT_PUBLIC_DEMO_WALLET=true` adds an in-page keypair wallet (never on mainnet); launch art and metadata are stored by the site (`/api/upload`, migration 003) because Arweave's free tier refuses test wallets.
+- Check the site with the production build (`next build && next start`); the dev server does not hydrate client components in this setup.

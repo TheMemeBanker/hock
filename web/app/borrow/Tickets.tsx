@@ -196,7 +196,12 @@ function LoanCard({ loan, onChanged }: { loan: LoanState; onChanged: () => void 
   }, [connection, loan.collateralMint, wallet.publicKey, a.state.phase]);
 
   useEffect(() => {
-    if (a.state.phase === "done") onChanged();
+    // Re-read the ticket after a confirmed action: once right away and once more a few seconds later so the card
+    // reflects chain state even when the RPC's confirmed view lags the confirmation by a slot or two.
+    if (a.state.phase !== "done") return;
+    onChanged();
+    const t = setTimeout(onChanged, 3000);
+    return () => clearTimeout(t);
   }, [a.state.phase, onChanged]);
 
   const tier = tierForLoan(loan.category, loan.ltvBps);

@@ -7,7 +7,7 @@ const csp = [
   "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
   "font-src 'self' https://fonts.gstatic.com data:",
   "img-src 'self' data: blob: https:",
-  "connect-src 'self' https://pumpportal.fun wss://pumpportal.fun https://api.dexscreener.com https://api.jup.ag https://node1.irys.xyz https://uploader.irys.xyz https://arweave.net https://gateway.irys.xyz https://ipfs.filebase.io https://ipfs.4everland.io https://pump.mypinata.cloud",
+  `connect-src 'self' https://pumpportal.fun wss://pumpportal.fun https://api.dexscreener.com https://api.jup.ag https://node1.irys.xyz https://node2.irys.xyz https://uploader.irys.xyz https://*.irys.xyz https://arweave.net https://gateway.irys.xyz https://ipfs.filebase.io https://ipfs.4everland.io https://pump.mypinata.cloud${process.env.NEXT_PUBLIC_COSIGN_URL ? " " + new URL(process.env.NEXT_PUBLIC_COSIGN_URL).origin : ""}`,
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

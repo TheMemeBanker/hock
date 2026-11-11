@@ -144,11 +144,11 @@ async function fireOrder(order, loanRow) {
   const chainLoan = await fetchLoan(conn, order.loan_pda).catch(() => null);
   const covered = chainLoan ? BigInt(chainLoan.solProceedsAmount.toString()) >= BigInt(chainLoan.repayAmount.toString()) : false;
   let status;
-  if (sigs.length === 0) status = "failed";
+  if (sigs.length === 0) status = /disarmed_on_chain/.test(lastError || "") ? "disarmed" : "failed"; // the borrower disarmed between ticks: not a failure
   else if (covered) status = "filled";
   else status = "partial";
   // A fire that never sent anything goes back to armed only when the reason is transient.
-  if (sigs.length === 0 && lastError && !/trigger_no_longer_holds|loan_no_longer_active|loan_already_fully_repaid|loan_missing_on_chain|order_state_changed|armed_caps_exhausted/.test(lastError)) {
+  if (sigs.length === 0 && lastError && !/trigger_no_longer_holds|loan_no_longer_active|loan_already_fully_repaid|loan_missing_on_chain|order_state_changed|armed_caps_exhausted|disarmed_on_chain/.test(lastError)) {
     await releaseToArmed(order.id, lastError);
     status = "armed";
   } else if (sigs.length === 0 && (!lastError || /trigger_no_longer_holds/.test(lastError))) {

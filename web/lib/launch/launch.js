@@ -11,7 +11,7 @@ export const LAUNCH_CONFIG = {
   tradeLocal: "https://pumpportal.fun/api/trade-local",
   feedWs: "wss://pumpportal.fun/api/data",
   irysGateway: "https://gateway.irys.xyz/",                 // permanent storage (Arweave via Irys); uploads under 100 KiB are free, signed by the launcher's wallet
-  irysBundle: "./vendor/irys.bundle.js",
+  irysBundle: "/vendor/irys.bundle.js",
   gateway: "https://ipfs.io/ipfs/",
   fetchGateway: "https://gateway.pinata.cloud/ipfs/",     // gateway that sends CORS headers, used for reading metadata JSON in the browser
   pool: "pump",

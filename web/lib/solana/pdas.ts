@@ -28,7 +28,9 @@ export function depositorPositionPda(pool: PublicKey, depositor: PublicKey, prog
 
 export function loanPda(borrower: PublicKey, loanId: bigint, programId?: PublicKey) {
   const id = Buffer.alloc(8);
-  id.writeBigUInt64LE(loanId);
+  // Manual little-endian encode: the browser Buffer shim does not implement writeBigUInt64LE.
+  let v = BigInt.asUintN(64, loanId);
+  for (let i = 0; i < 8; i++) { id[i] = Number(v & 0xffn); v >>= 8n; }
   return PublicKey.findProgramAddressSync([Buffer.from("loan"), borrower.toBuffer(), id], pid(programId));
 }
 

@@ -65,7 +65,7 @@ export function planSlice({ chainLoan, feed, decimals, maxSliceBps = WATCHER_MAX
     bps = Math.min(bps, armedMax, aggregateLeft);
   }
   bps = Math.max(0, Math.floor(bps));
-  if (bps <= 0) return { sliceBps: 0, reason: overdue ? "nothing_left" : "armed_caps_exhausted" };
+  if (bps <= 0) return { sliceBps: 0, reason: overdue ? "nothing_left" : armedTotal <= 0 ? "disarmed_on_chain" : "armed_caps_exhausted" };
   const sliceAmount = (collateral * BigInt(bps)) / BPS_DENOM;
   if (sliceAmount === 0n) return { sliceBps: 0, reason: "slice_too_small" };
   return { sliceBps: bps, sliceAmount, needed, price, overdue };

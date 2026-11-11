@@ -39,8 +39,13 @@ export default async function BoardPage() {
               {rows.map((r) => (
                 <tr key={r.mint}>
                   <td style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>
-                    <strong>{r.name}</strong> <span className="mono" style={{ color: "var(--muted)" }}>${r.symbol}</span>
-                    <div className="mono" style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, overflowWrap: "anywhere" }}>{r.mint}</div>
+                    <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
+                      {r.imageUrl ? <img src={r.imageUrl} alt="" width={36} height={36} style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} /> : <span aria-hidden style={{ width: 36, height: 36, borderRadius: 10, background: "var(--line)", flexShrink: 0 }} />}
+                      <div style={{ minWidth: 0 }}>
+                        <strong>{r.name}</strong> <span className="mono" style={{ color: "var(--muted)" }}>${r.symbol}</span>
+                        <div className="mono" style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, overflowWrap: "anywhere" }}>{r.mint}</div>
+                      </div>
+                    </div>
                   </td>
                   <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.age}</td>
                   <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{fmtUsd(markets.get(r.mint)?.marketCapUsd)}</td>

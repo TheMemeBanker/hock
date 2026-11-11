@@ -46,11 +46,25 @@ export async function POST(req: Request) {
   const keys = tx.transaction.message.getAccountKeys().staticAccountKeys.map((k) => k.toBase58());
   if (!keys.includes(mint) || !keys.includes(launcher)) return NextResponse.json({ ok: false, error: "signature does not involve this mint and launcher" }, { status: 409 });
 
+  // Image URL from the metadata JSON (our test-cluster relay or Arweave), best effort with a short timeout.
+  let imageUrl: string | null = null;
+  if (metadataUri && /^https?:\/\//.test(metadataUri)) {
+    try {
+      const r = await fetch(metadataUri, { signal: AbortSignal.timeout(4000), headers: { accept: "application/json" } });
+      const j = r.ok ? ((await r.json()) as { image?: unknown }) : null;
+      if (j && typeof j.image === "string" && /^https?:\/\//.test(j.image) && j.image.length < 500) {
+        imageUrl = j.image;
+        // Our own test-cluster relay: store a same-origin path so it renders whichever host name the site is reached by.
+        try { const u = new URL(j.image); if (u.pathname.startsWith("/api/upload/")) imageUrl = u.pathname; } catch { /* keep absolute */ }
+      }
+    } catch { /* leave null */ }
+  }
   await p.query(
-    `INSERT INTO mints (mint, symbol, name, decimals, token_program, metadata_uri, launched_here, launch_sig, launcher)
-     VALUES ($1,$2,$3,$4,$5,$6,true,$7,$8)
-     ON CONFLICT (mint) DO UPDATE SET launched_here = true, launch_sig = EXCLUDED.launch_sig, launcher = EXCLUDED.launcher, metadata_uri = COALESCE(EXCLUDED.metadata_uri, mints.metadata_uri)`,
-    [mint, symbol.toUpperCase(), name, parsed.info.decimals, info.owner.toBase58(), metadataUri ?? null, sig, launcher],
+    `INSERT INTO mints (mint, symbol, name, decimals, token_program, metadata_uri, image_url, launched_here, launch_sig, launcher)
+     VALUES ($1,$2,$3,$4,$5,$6,$7,true,$8,$9)
+     ON CONFLICT (mint) DO UPDATE SET launched_here = true, launch_sig = EXCLUDED.launch_sig, launcher = EXCLUDED.launcher,
+       metadata_uri = COALESCE(EXCLUDED.metadata_uri, mints.metadata_uri), image_url = COALESCE(EXCLUDED.image_url, mints.image_url)`,
+    [mint, symbol.toUpperCase(), name, parsed.info.decimals, info.owner.toBase58(), metadataUri ?? null, imageUrl, sig, launcher],
   );
   await p.query(`INSERT INTO gate_state (mint, verdict) VALUES ($1, 'launched') ON CONFLICT (mint) DO NOTHING`, [mint]);
   return NextResponse.json({ ok: true });

@@ -409,8 +409,10 @@ export async function signAndSend(connection: Connection, built: BuiltTx, wallet
  * cannot be completed; the caller shows that plainly instead of pretending.
  */
 export async function signCosignAndSend(connection: Connection, built: BuiltTx, wallet: SignerLike): Promise<ConfirmResult> {
-  const relay = process.env.NEXT_PUBLIC_COSIGN_URL;
-  if (!relay) throw new Error("Borrow co-sign relay is not configured (NEXT_PUBLIC_COSIGN_URL). The pool authority must co-sign every borrow.");
+  const relayBase = process.env.NEXT_PUBLIC_COSIGN_URL;
+  if (!relayBase) throw new Error("Borrow co-sign relay is not configured (NEXT_PUBLIC_COSIGN_URL). The pool authority must co-sign every borrow.");
+  // NEXT_PUBLIC_COSIGN_URL is the relay's origin (or a full endpoint); the engine serves POST /cosign/borrow.
+  const relay = /\/cosign\/borrow\/?$/.test(relayBase) ? relayBase.replace(/\/$/, "") : `${relayBase.replace(/\/$/, "")}/cosign/borrow`;
   if (!wallet.signTransaction) throw new Error("This wallet cannot partially sign; use a wallet that supports signTransaction.");
   const userSigned = await wallet.signTransaction(built.tx);
   const body = { tx: Buffer.from(userSigned.serialize({ requireAllSignatures: false, verifySignatures: false })).toString("base64") };

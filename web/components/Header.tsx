@@ -4,10 +4,19 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { Mark } from "./Mark";
 
-const WalletMultiButton = dynamic(
-  () => import("@solana/wallet-adapter-react-ui").then((m) => m.WalletMultiButton),
+const BaseWalletMultiButton = dynamic(
+  () => import("@solana/wallet-adapter-react-ui").then((m) => m.BaseWalletMultiButton),
   { ssr: false, loading: () => <button type="button" className="btn line" disabled>Connect wallet</button> },
 );
+const WALLET_LABELS = {
+  "no-wallet": "Connect wallet",
+  "has-wallet": "Connect",
+  connecting: "Connecting…",
+  "copy-address": "Copy address",
+  copied: "Copied",
+  "change-wallet": "Change wallet",
+  disconnect: "Disconnect",
+} as const;
 
 export function Header() {
   return (
@@ -19,11 +28,11 @@ export function Header() {
       <nav aria-label="Primary" className="site-nav">
         <Link href="/launch">Launch</Link>
         <Link href="/board">Board</Link>
-        <Link href="/borrow">Borrow</Link>
+        <Link href="/borrow">Dashboard</Link>
         <Link href="/lend">Lend</Link>
         <Link href="/docs">Docs</Link>
       </nav>
-      <div className="site-wallet"><WalletMultiButton className="btn line" /></div>
+      <div className="site-wallet"><BaseWalletMultiButton className="btn line" labels={WALLET_LABELS} /></div>
     </header>
   );
 }

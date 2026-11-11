@@ -122,14 +122,15 @@ const ALLOWED_METHODS = new Set([
 ]);
 
 const MAX_BODY_BYTES = 16 * 1024;
-const RATE_LIMIT_MAX = 60;
+// Reads: a dashboard load plus wallet polling is dozens of calls a minute per user; 60 tripped on a single confirmation loop (2026-11-11).
+const RATE_LIMIT_MAX = Number(process.env.RPC_PROXY_READS_PER_MINUTE) || 400;
 // Mutating/broadcast methods (sendTransaction) and expensive relays
 // (simulateTransaction) get a much tighter per-IP ceiling than read calls —
 // nobody legitimately broadcasts/simulates 60x/min from a single client, and
 // keeping this low limits how much anyone can abuse the paid RPC as an
 // open broadcast/simulate relay (audit finding #15). Read methods keep the
 // generous RATE_LIMIT_MAX; mutating methods use RATE_LIMIT_MUTATING_MAX.
-const RATE_LIMIT_MUTATING_MAX = 12;
+const RATE_LIMIT_MUTATING_MAX = Number(process.env.RPC_PROXY_WRITES_PER_MINUTE) || 40;
 const RATE_LIMIT_WINDOW_MS = 60_000;
 // Methods that should count against the tighter mutating/relay budget.
 const MUTATING_METHODS = new Set(["sendTransaction", "simulateTransaction"]);

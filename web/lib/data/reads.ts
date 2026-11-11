@@ -11,6 +11,7 @@ type BoardRow = {
   mint: string;
   name: string;
   symbol: string;
+  imageUrl: string | null;
   age: string;
   marketCap: string | null;
   liquidity: string | null;
@@ -56,7 +57,7 @@ export async function getBoard(limit = 50): Promise<BoardRow[]> {
   if (!p) return [];
   try {
     const { rows } = await p.query(
-      `SELECT m.mint, m.name, m.symbol, m.created_at, g.verdict, g.liquidity_ok, g.velocity_ok, g.routability_ok, g.holders_ok, g.extensions_ok,
+      `SELECT m.mint, m.name, m.symbol, m.image_url, m.created_at, g.verdict, g.liquidity_ok, g.velocity_ok, g.routability_ok, g.holders_ok, g.extensions_ok,
               g.liquidity_usd, g.volume_24h_usd, g.route_quote_sol
          FROM mints m LEFT JOIN gate_state g ON g.mint = m.mint
         WHERE m.launched_here = true
@@ -77,6 +78,7 @@ export async function getBoard(limit = 50): Promise<BoardRow[]> {
         mint: r.mint,
         name: r.name,
         symbol: r.symbol,
+        imageUrl: r.image_url ?? null,
         age: ago(new Date(r.created_at)),
         marketCap: null, // filled by the coin page from DexScreener at request time
         liquidity: usd(r.liquidity_usd),

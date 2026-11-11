@@ -91,7 +91,7 @@ export function LaunchForm() {
           meta: { name: name.trim(), symbol: symbol.trim().toUpperCase(), description: desc.trim(), twitter: twitter.trim(), telegram: telegram.trim(), website: website.trim() },
           imageFile: image!,
           rpcUrl: `${window.location.origin}/api/rpc`,
-          uploadProxy: process.env.NEXT_PUBLIC_UPLOAD_RELAY_URL ?? "",
+          uploadProxy: process.env.NEXT_PUBLIC_UPLOAD_RELAY_URL || `${window.location.origin}/api/upload`,
           dry,
           onStatus: (s: string) => setStatus(s),
           onStep: (n: number, state?: string) => stepHook(n, state),
@@ -112,6 +112,10 @@ export function LaunchForm() {
           tradeLocal: process.env.NEXT_PUBLIC_PUMPPORTAL_TRADE_LOCAL ?? "https://pumpportal.fun/api/trade-local",
           uploadProxy: process.env.NEXT_PUBLIC_UPLOAD_RELAY_URL ?? "",
           rpcs: [`${window.location.origin}/api/rpc`],
+          irysBundle: "/vendor/irys.bundle.js",
+          irysGateway: "https://gateway.irys.xyz/",
+          gateway: "https://ipfs.io/ipfs/",
+          fetchGateway: "https://gateway.pinata.cloud/ipfs/",
           pool: "pump",
         },
         onStatus: (s: string) => setStatus(s),
@@ -156,7 +160,7 @@ export function LaunchForm() {
 
         {TEST_CLUSTER && (
           <p style={{ margin: 0, fontSize: 13, color: "var(--body)", lineHeight: 1.6, borderLeft: "3px solid var(--gold)", paddingLeft: 12 }}>
-            <strong>Test cluster ({CLUSTER}).</strong> Launching here creates a Token-2022 test mint with on-chain metadata, mints 1,000,000,000 to your wallet and revokes the mint authority. There is no bonding curve and no PumpPortal on this cluster; the gate grades it against synthetic market rows the engine operator sets.
+            <strong>Test cluster ({CLUSTER}).</strong> Launching here creates a Token-2022 test mint with on-chain metadata, mints 1,000,000,000 to your wallet and revokes the mint authority. Art and metadata are stored by this site (mainnet uses Arweave). There is no bonding curve and no PumpPortal on this cluster; the gate grades it against synthetic market rows the engine operator sets.
           </p>
         )}
         <details style={{ borderTop: "1px dashed var(--line)", paddingTop: 12 }} hidden={TEST_CLUSTER}>

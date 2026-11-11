@@ -85,3 +85,9 @@ img { max-width: 100%; }
   .doc-nav a { border-left: 0; padding: 7px 12px; border-radius: 999px; border: 1px solid var(--line); background: var(--card); font-size: 14px; }
   .doc-nav a.current { border-color: var(--green); background: var(--green-lite); }
 }
+
+/* ---- wallet button: the adapter ships a purple default; render it as our outline button in every state ---- */
+.site-wallet .wallet-adapter-button { background: transparent; color: var(--ink); border: 2px solid var(--ink); border-radius: 999px; height: auto; min-height: 44px; padding: 0 18px; font: inherit; font-weight: 700; font-size: 15px; line-height: 1; }
+.site-wallet .wallet-adapter-button:not([disabled]):hover { background: var(--ink); color: #fff; }
+.site-wallet .wallet-adapter-button-start-icon { width: 18px; height: 18px; }
+.wallet-adapter-dropdown-list { font-family: inherit; }

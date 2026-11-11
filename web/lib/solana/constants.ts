@@ -7,8 +7,14 @@ import { PublicKey } from "@solana/web3.js";
 
 export type Cluster = "localnet" | "devnet" | "mainnet-beta";
 
-function envKey(name: string): PublicKey | null {
-  const v = process.env[name];
+// Next inlines NEXT_PUBLIC_* only when referenced statically (process.env.NAME); a dynamic lookup is
+// undefined in the browser bundle, which broke every client-side chain read on 2026-11-11.
+const PUBLIC_ENV: Record<string, string | undefined> = {
+  NEXT_PUBLIC_PROGRAM_ID: process.env.NEXT_PUBLIC_PROGRAM_ID,
+  NEXT_PUBLIC_POOL_PDA: process.env.NEXT_PUBLIC_POOL_PDA,
+};
+function envKey(name: keyof typeof PUBLIC_ENV): PublicKey | null {
+  const v = PUBLIC_ENV[name];
   if (!v) return null;
   try {
     return new PublicKey(v);

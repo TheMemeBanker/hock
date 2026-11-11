@@ -87,7 +87,8 @@ export async function buildDevnetCreate(conn: Connection, payer: PublicKey, mint
 }
 
 export async function launchDevnet({ wallet, pubkey, meta, imageFile, rpcUrl, uploadProxy = "", pinataJwt = "", dry = false, onStatus = () => {}, onStep = () => {} }: DevnetLaunchArgs): Promise<LaunchResult> {
-  const config = { uploadProxy, irysGateway: "https://gateway.irys.xyz/", irysBundle: "./vendor/irys.bundle.js", gateway: "https://ipfs.io/ipfs/", fetchGateway: "https://gateway.pinata.cloud/ipfs/" };
+  // rpcs is only consulted by the storage client when an upload exceeds the free tier (art is shrunk under it); it still has to exist.
+  const config = { uploadProxy, rpcs: [rpcUrl], irysGateway: "https://gateway.irys.xyz/", irysBundle: "/vendor/irys.bundle.js", gateway: "https://ipfs.io/ipfs/", fetchGateway: "https://gateway.pinata.cloud/ipfs/" };
   onStep(1); onStatus("Storing art and metadata…");
   let uri: string;
   if (uploadProxy) uri = await pinViaProxy(meta, imageFile, config);
@@ -117,8 +118,17 @@ export async function launchDevnet({ wallet, pubkey, meta, imageFile, rpcUrl, up
   onStep(4); onStatus("Sending…");
   const sig = await conn.sendRawTransaction(signed.serialize(), { skipPreflight: false, maxRetries: 3 });
   onStatus(`Confirming ${sig.slice(0, 8)}…`);
-  const conf = await conn.confirmTransaction({ signature: sig, blockhash, lastValidBlockHeight }, "confirmed");
-  if (conf.value.err) throw new Error("Transaction failed on-chain: " + JSON.stringify(conf.value.err));
+  // Poll signature status gently (one call every 1.5 s) instead of confirmTransaction's subscription + tight loop,
+  // which does not work through the HTTP-only proxy and trips its rate limit.
+  const deadline = Date.now() + 90_000;
+  for (;;) {
+    const st = (await conn.getSignatureStatuses([sig])).value[0];
+    if (st?.err) throw new Error("Transaction failed on-chain: " + JSON.stringify(st.err));
+    if (st && (st.confirmationStatus === "confirmed" || st.confirmationStatus === "finalized")) break;
+    if (Date.now() > deadline) throw new Error("Not confirmed within 90 s; check the explorer before retrying.");
+    if ((await conn.getBlockHeight("confirmed")) > lastValidBlockHeight) throw new Error("Transaction expired before confirmation; try again.");
+    await new Promise((r) => setTimeout(r, 1500));
+  }
   onStep(4, "done"); onStatus("Launched on the test cluster. Your coin is on the board.", "ok");
   return { mint: mint.publicKey.toBase58(), sig, uri, dry: false, simulatedUnits: units };
 }
