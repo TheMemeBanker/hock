@@ -1,0 +1,34 @@
+name: ci
+on:
+  push:
+    branches: [main]
+  pull_request:
+jobs:
+  engine-and-web-checks:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+      - name: Engine syntax check
+        run: |
+          cd engine
+          for f in $(find src db -name '*.js'); do node --check "$f"; done
+      - name: Scrub check (no prior-brand strings, no secrets)
+        run: |
+          set -e
+          ! grep -rniE --exclude-dir=node_modules --exclude-dir=.git --exclude=irys.bundle.js 'magpie|magpiecapital|bagbank|flingit' . 
+          ! grep -rniE --exclude-dir=node_modules --exclude-dir=.git 'api-key=|sk-ant-|ghp_[A-Za-z0-9]{20,}' .
+      - name: Web typecheck
+        run: |
+          cd web
+          npm ci || npm install
+          npx tsc --noEmit
+  program:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Unit tests (host)
+        run: cd program && cargo test --manifest-path programs/hock-lending/Cargo.toml --lib
