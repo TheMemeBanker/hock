@@ -34,7 +34,7 @@
  */
 import { PublicKey, Transaction, VersionedTransaction } from "@solana/web3.js";
 import { connection } from "../rpc/connection.js";
-import { query } from "../TODO-hock/db.js";
+import { query } from "../db/pool.js";
 
 const TOKENKEG = new PublicKey("TokenkegQfeZyiNwAJbNbGKPFXCWuBvf9Ss623VQ5DA");
 const TOKEN2022 = new PublicKey("TokenzQdBNbLqP5VEhdkAS6EPFLC1PHnBqCXEpPxuEb");

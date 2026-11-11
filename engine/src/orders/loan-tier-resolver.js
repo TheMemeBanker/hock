@@ -26,7 +26,7 @@
  * feeLamports feeds the 70-10-10-10 accrual flow. Protocol slice
  * lands in FEE_DESTINATION via the existing FEE_DESTINATION flow.
  */
-import { query } from "../TODO-hock/db.js";
+import { query } from "../db/pool.js";
 
 // Same MEMECOIN_TIERS that has been used since v1. Kept as a constant
 // here (not in DB) because (a) the memecoin path is stable and changing

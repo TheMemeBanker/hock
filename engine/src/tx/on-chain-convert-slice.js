@@ -74,52 +74,13 @@ import { readFileSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
+import { getIdl, fetchPool, poolPda as hockPoolPda, programId as hockProgramId } from "../chain/program.js";
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const V4_IDL_PATH = join(__dirname, "idl", "hock_lending_v4.json");
 
-let _cachedV4Idl = null;
-function getV4Idl() {
-  if (!_cachedV4Idl) {
-    _cachedV4Idl = JSON.parse(readFileSync(V4_IDL_PATH, "utf8"));
-    // V4 Hardening T13 (2026-06-16): override the IDL's bundled
-    // `address` field with the runtime PROGRAM_ID_V4. The bundled IDL
-    // was generated against an early deployment that no
-    // longer exists; the live patched V4 lives wherever env says (or
-    // whatever env says today). Without this override, Anchor 0.30+'s
-    // `new Program(idl, provider)` constructs the Program against the
-    // stale address, and every convert_collateral_slice tx fails the
-    // pre-fire simulation with ProgramAccountNotFound because the
-    // referenced program doesn't exist on chain. Diagnosed and fixed
-    // 2026-06-16 after the synthetic-fire canary surfaced it.
-    const envProgramId = process.env.PROGRAM_ID_V4;
-    if (envProgramId && _cachedV4Idl.address !== envProgramId) {
-      console.log(`[v4-idl] overriding bundled address ${_cachedV4Idl.address?.slice(0, 8)}… → ${envProgramId.slice(0, 8)}…`);
-      _cachedV4Idl.address = envProgramId;
-    }
-  }
-  return _cachedV4Idl;
-}
-
-const V4_PROGRAM_ID_STR = process.env.PROGRAM_ID_V4 || null;
-
-// V4.1 (Sec3-remediated program, new id 2026-08-26). Same convert
-// interface plus TWO extra accounts: price_history + pool (H-02/M-03
-// oracle-floor cluster reads the TWAP feed on-chain at fire time).
-const V4_1_PROGRAM_ID_STR = process.env.PROGRAM_ID_V4_1 || null;
-const V4_1_IDL_PATH = join(__dirname, "idl", "hock_lending_v4_1.json");
-let _cachedV41Idl = null;
-function getV41Idl() {
-  if (!_cachedV41Idl) {
-    _cachedV41Idl = JSON.parse(readFileSync(V4_1_IDL_PATH, "utf8"));
-    if (!V4_1_PROGRAM_ID_STR) {
-      throw new Error("getV41Idl: PROGRAM_ID_V4_1 env not set — V4.1 firing inactive");
-    }
-    // Bundled IDL ships with the 111…111 placeholder ON PURPOSE (same    // rule as the bot): a V4.1 ix can never be built against a
-    // program id that env did not explicitly provide.
-    _cachedV41Idl.address = V4_1_PROGRAM_ID_STR;
-  }
-  return _cachedV41Idl;
-}
+// Single program: PROGRAM_ID (required, no fallback) and src/tx/idl/hock_lending.json.
+function getV4Idl() { return getIdl(); }
+function getV41Idl() { return getIdl(); }
+const PROGRAM_ID_STR = process.env.PROGRAM_ID || null;
 const JUPITER_API = process.env.JUPITER_API || "https://lite-api.jup.ag/swap/v1";
 const JUPITER_AGGREGATOR_PROGRAM_ID = new PublicKey(
   "JUP6LkbZbjS1jKKwapdHNy74zcZ3tLUZoi5QNyVTaV4",
@@ -304,7 +265,7 @@ function decodeJupiterIxAccounts(accounts) {
  *                   want the same RPC the rest of the engine uses so a
  *                   degraded RPC fails uniformly)
  *   loan            Row from the loans table — must have loan_pda,
- *                   collateral_mint, program_id (=== PROGRAM_ID_V4)
+ *                   collateral_mint, program_id (=== PROGRAM_ID)
  *   sliceBps        u16 in (0, 10_000] — basis points of ORIGINAL collateral
  *   jupiterQuote    Full quote response from /v6/quote (this caller has
  *                   already filtered by route quality / cross-source
@@ -349,6 +310,7 @@ export async function executeOnChainConvertSlice({
    * instead of the on-chain receipt.
    */
   dryRun = false,
+  minSolOutFloor = null,
 }) {
   // T9 (2026-06-16): per-fire forensic telemetry collected through the
   // function so execution.js can persist it to v4_fire_receipts after
@@ -363,18 +325,14 @@ export async function executeOnChainConvertSlice({
     jupiter_min_out_lamports: null,
   };
 
-  if (!V4_PROGRAM_ID_STR) {
-    throw new Error("executeOnChainConvertSlice: PROGRAM_ID_V4 env not set; V4 inactive");
+  if (!PROGRAM_ID_STR) {
+    throw new Error("executeOnChainConvertSlice: PROGRAM_ID env not set");
   }
   // Version-aware: the loan's own program_id decides V4 vs V4.1. Any
   // other id is refused exactly as before.
-  const isV41 = !!V4_1_PROGRAM_ID_STR && loan.program_id === V4_1_PROGRAM_ID_STR;
-  if (loan.program_id !== V4_PROGRAM_ID_STR && !isV41) {
-    throw new Error(
-      `executeOnChainConvertSlice: loan.program_id ${loan.program_id?.slice(0, 8)}… is neither ` +
-      `PROGRAM_ID_V4 ${V4_PROGRAM_ID_STR.slice(0, 8)}… nor PROGRAM_ID_V4_1 ` +
-      `${V4_1_PROGRAM_ID_STR ? V4_1_PROGRAM_ID_STR.slice(0, 8) + "…" : "(unset)"}. Refusing.`,
-    );
+  const isV41 = true; // the HOCK program always carries the pool + price_history accounts
+  if (loan.program_id && loan.program_id !== PROGRAM_ID_STR) {
+    throw new Error(`executeOnChainConvertSlice: loan.program_id ${String(loan.program_id).slice(0, 8)} is not PROGRAM_ID. Refusing.`);
   }
   if (!Number.isInteger(sliceBps) || sliceBps <= 0 || sliceBps > 10_000) {
     throw new Error(`executeOnChainConvertSlice: invalid sliceBps ${sliceBps} (expected 1..10000)`);
@@ -383,8 +341,9 @@ export async function executeOnChainConvertSlice({
     throw new Error("executeOnChainConvertSlice: malformed jupiterQuote — missing outAmount/otherAmountThreshold");
   }
 
-  const programId = new PublicKey(isV41 ? V4_1_PROGRAM_ID_STR : V4_PROGRAM_ID_STR);
-  const lenderPubkey = new PublicKey(process.env.LENDER_PUBKEY);
+  const programId = hockProgramId();
+  const poolState = await fetchPool(connection);
+  const poolPk = hockPoolPda();
   const engineKp = loadEngineKeypair();
 
   const collateralMintPk = new PublicKey(loan.collateral_mint);
@@ -402,12 +361,11 @@ export async function executeOnChainConvertSlice({
     false,
     collateralTokenProgram,
   );
-  const feeWalletWsolAta = getAssociatedTokenAddressSync(
-    NATIVE_MINT,
-    lenderPubkey,
-    false,
-    loanTokenProgram,
-  );
+  // Fee wallet is pinned on chain (pool.fee_wallet); anything else is rejected by the program.
+  const feeWalletWsolAta = new PublicKey(poolState.feeWallet.toBase58());
+  if (!poolState.engineAuthority.equals(engineKp.publicKey)) {
+    throw new Error(`executeOnChainConvertSlice: pool.engine_authority ${poolState.engineAuthority.toBase58().slice(0, 8)} != engine key ${engineKp.publicKey.toBase58().slice(0, 8)}`);
+  }
 
   // ── Jupiter swap-instructions (Pattern B) ─────────────────────────
   // userPublicKey = engine pubkey (the swap's source authority).
@@ -441,7 +399,11 @@ export async function executeOnChainConvertSlice({
   // user is willing to accept. V4 enforces this on-chain; we pass it
   // through unchanged so the on-chain check matches the off-chain
   // expectation byte-for-byte.
-  const minSolOut = new BN(jupiterQuote.otherAmountThreshold);
+  // min_sol_out = max(quote threshold, oracle floor supplied by the caller). The program
+  // enforces the floor on chain; we never submit below it.
+  let minSolOutBig = BigInt(jupiterQuote.otherAmountThreshold);
+  if (minSolOutFloor != null && BigInt(minSolOutFloor) > minSolOutBig) minSolOutBig = BigInt(minSolOutFloor);
+  const minSolOut = new BN(minSolOutBig.toString());
 
   // T9 forensic telemetry — capture Jupiter route metadata once the
   // quote is locked in. Used downstream by execution.js when writing
@@ -478,20 +440,11 @@ export async function executeOnChainConvertSlice({
     systemProgram: SystemProgram.programId,
     rent: SYSVAR_RENT_PUBKEY,
   };
-  if (isV41) {
-    // V4.1 interface delta (Sec3 H-02/M-03/L-04/L-05 cluster): the
-    // program re-reads the TWAP feed and binds pool == loan.pool at
-    // fire time, so both accounts join the struct.
-    const [poolPda] = PublicKey.findProgramAddressSync(
-      [Buffer.from("pool"), lenderPubkey.toBuffer()],
-      programId,
-    );
-    baseAccounts.pool = poolPda;
-    baseAccounts.priceHistory = PublicKey.findProgramAddressSync(
-      [Buffer.from("price_v3"), collateralMintPk.toBuffer(), poolPda.toBuffer()],
-      programId,
-    )[0];
-  }
+  baseAccounts.pool = poolPk;
+  baseAccounts.priceHistory = PublicKey.findProgramAddressSync(
+    [Buffer.from("price_v3"), collateralMintPk.toBuffer(), poolPk.toBuffer()],
+    programId,
+  )[0];
   const v4Ix = await program.methods
     .convertCollateralSlice(sliceBps, minSolOut, swapIxData)
     .accountsStrict(baseAccounts)
@@ -522,13 +475,6 @@ export async function executeOnChainConvertSlice({
       engineKp.publicKey,
       collateralMintPk,
       collateralTokenProgram,
-    ),
-    createAssociatedTokenAccountIdempotentInstruction(
-      engineKp.publicKey,
-      feeWalletWsolAta,
-      lenderPubkey,
-      NATIVE_MINT,
-      loanTokenProgram,
     ),
   ];
 
@@ -754,7 +700,7 @@ export async function recoverV4FireReceipt({ connection, signature }) {
   if (!connection || !signature) return null;
   const { BorshCoder } = await import("@coral-xyz/anchor");
   const programLike = {
-    programId: new PublicKey(V4_PROGRAM_ID_STR),
+    programId: hockProgramId(),
     coder: new BorshCoder(getV4Idl()),
   };
   const eventReceipt = await parseCollateralConvertedEvent(connection, programLike, signature);

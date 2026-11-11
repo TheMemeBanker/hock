@@ -3,12 +3,15 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "description": "HOCK off-chain engine: RPC, pricing, tx, safety, orders, health.",
+  "description": "HOCK off-chain engine: attestor, gate, watcher, reconciler, canary, health.",
   "engines": {
     "node": ">=20"
   },
   "scripts": {
-    "check": "for f in $(find src db -name \"*.js\"); do node --check $f || exit 1; done"
+    "start": "node src/index.js",
+    "check": "for f in $(find src db -name \"*.js\"); do node --check $f || exit 1; done; echo check ok",
+    "migrate": "node -e 'import(\"./db/migrations-runner.js\").then(m=>m.applyPendingMigrations()).then(r=>{console.log(r);process.exit(0)}).catch(e=>{console.error(e.message);process.exit(1)})'",
+    "boot-check": "node src/index.js --boot-check"
   },
   "dependencies": {
     "@coral-xyz/anchor": "^0.30.1",

@@ -36,7 +36,7 @@ export const backupConnections = BACKUPS.map((url) => new Connection(url, "confi
  * non-retryable and thrown immediately — the configured backup was never tried,
  * despite being healthy the whole time. We paid for redundancy and it sat idle.
  *
- * ⚠️ WHY THIS IS NOT JUST /5\d\d/: a bare three-digit match would fire on
+  * WHY THIS IS NOT JUST /5\d\d/: a bare three-digit match would fire on
  * ordinary amounts. "insufficient funds: need 500000 lamports" contains "500",
  * and treating that as retryable would silently retry a genuine, deterministic
  * failure against every provider and slow every real error down 3x. So 5xx is

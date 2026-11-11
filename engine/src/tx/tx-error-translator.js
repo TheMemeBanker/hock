@@ -6,8 +6,7 @@
  *
  *   "Transaction simulation failed: Error processing Instruction 4:
  *    custom program error: 0x1. Logs: [...] Transfer: insufficient
- *    lamports 15116739, need 519360343"
- *
+ *    lamports 15116739, need 519360343"*
  * Which is completely unreadable. This helper recognizes the most
  * common patterns and rewrites them into something a non-developer can
  * actually act on. Falls back to a clean "something went wrong, here's
@@ -17,7 +16,6 @@
  * we surface a Solana transaction error directly to the user.
  */
 
-import { InlineKeyboard } from "../TODO-hock/keyboard.js";
 
 function fmtSol(lamports) {
   return (Number(lamports) / 1e9).toFixed(4);
@@ -34,15 +32,15 @@ function fmtSol(lamports) {
  * @param {string} [opts.errorKind] — short kind tag (e.g. "insufficient_sol")
  *   passed to the agent so it has context
  */
-export function errorActionKeyboard(opts = {}) {
+export function errorActions(opts = {}) {
   const flow = opts.flow || "repay";
   const kind = opts.errorKind || "tx_error";
-  return new InlineKeyboard()
-    .text("🤖 Ask the agent why", `txerr:ask:${flow}:${kind}`)
-    .text("📥 Deposit", "fallback:deposit")
-    .row()
-    .text(`🔁 Try /${flow} again`, `txerr:retry:${flow}`);
+  return [
+    { label: "Ask why", action: `txerr:ask:${flow}:${kind}` },
+    { label: `Try ${flow} again`, action: `txerr:retry:${flow}` },
+  ];
 }
+export const errorActionKeyboard = errorActions;
 
 /**
  * Render the user-facing message for a wallet-mismatch preflight reject.
@@ -64,7 +62,7 @@ export function renderWalletMismatchMessage(ownership, flow = "act on") {
   const shortB = `${ownership.borrowerWallet.slice(0, 8)}…${ownership.borrowerWallet.slice(-8)}`;
   const shortC = `${ownership.currentWallet.slice(0, 8)}…${ownership.currentWallet.slice(-8)}`;
   return [
-    "⚠️ *This loan was opened by a different wallet*",
+    "*This loan was opened by a different wallet*",
     "",
     `Loan #${ownership.loanId} can only be ${verb} by the wallet that originally took it out — Solana enforces this at the program level.`,
     "",
@@ -85,8 +83,7 @@ export function renderWalletMismatchMessage(ownership, flow = "act on") {
  * @param {Error} err — the caught error (usually a SendTransactionError or thrown by anchor)
  * @param {object} ctx — optional context for richer messages
  * @param {bigint|string|number} [ctx.owedLamports] — amount user owes (for repay-flow phrasing)
- * @param {string} [ctx.flow] — "repay" | "partialrepay" | "extend" | "borrow" | "withdraw"
- * @returns {string} Markdown-formatted message ready to send via Telegram
+ * @param {string} [ctx.flow] — "repay" | "partialrepay" | "extend" | "borrow" | "withdraw"* @returns {string} Markdown-formatted message ready to send via Telegram
  */
 export function translateTxError(err, ctx = {}) {
   const raw = (err?.message || "").toString();
@@ -109,7 +106,7 @@ export function translateTxError(err, ctx = {}) {
     if (flow === "borrow" || flow === "reborrow") {
       const cmd = flow === "reborrow" ? "/reborrow" : "/borrow";
       return [
-        "⚠️ *Not enough of the collateral token in your wallet*",
+        "*Not enough of the collateral token in your wallet*",
         "",
         "The borrow tried to lock more of this token than you currently hold. Your SOL balance is fine — it's the collateral side that's short.",
         "",
@@ -122,7 +119,7 @@ export function translateTxError(err, ctx = {}) {
     }
     if (flow === "topup") {
       return [
-        "⚠️ *Not enough of the collateral token in your wallet*",
+        "*Not enough of the collateral token in your wallet*",
         "",
         "The top-up tried to add more tokens than you currently hold. Your SOL balance is fine — it's the collateral side that's short.",
         "",
@@ -131,7 +128,7 @@ export function translateTxError(err, ctx = {}) {
     }
     // Generic SPL InsufficientFunds for other flows
     return [
-      "⚠️ *Not enough tokens in your wallet for this transaction*",
+      "*Not enough tokens in your wallet for this transaction*",
       "",
       "The transaction tried to move more tokens than you currently hold. Your SOL balance is fine — it's a specific SPL token that's short.",
       "",
@@ -159,7 +156,7 @@ export function translateTxError(err, ctx = {}) {
   }
   if (anchorCode === 6017 || /PriceImpactPumpDetected/i.test(blob)) {
     return [
-      "⚠️ *Spot price moved too far above the 5-min TWAP*",
+      "*Spot price moved too far above the 5-min TWAP*",
       "",
       "The lending program refuses to lend when the latest attested price is more than 15% above the trailing 5-minute average — pump protection (applies to both V3 and V4 borrows).",
       "",
@@ -170,7 +167,7 @@ export function translateTxError(err, ctx = {}) {
   }
   if (anchorCode === 6013 || /StalePriceAttestation/i.test(blob)) {
     return [
-      "⚠️ *Price attestation expired*",
+      "*Price attestation expired*",
       "",
       "The on-chain price feed for this token is older than 2 minutes. The bot's attestor should refresh it on the next tick.",
       "",
@@ -179,7 +176,7 @@ export function translateTxError(err, ctx = {}) {
   }
   if (anchorCode === 6014 || /CollateralValueExceedsAttestation/i.test(blob)) {
     return [
-      "⚠️ *Borrow value too high vs. on-chain TWAP*",
+      "*Borrow value too high vs. on-chain TWAP*",
       "",
       "The borrow amount exceeds what the TWAP-attested collateral price allows. Try a slightly smaller %.",
     ].join("\n");
@@ -207,7 +204,7 @@ export function translateTxError(err, ctx = {}) {
       // itself charges tiny fees for every tx + small "rent" for
       // creating any new on-chain account.
       const lines = [
-        "⚠️ *Your wallet doesn't have enough SOL*",
+        "*Your wallet doesn't have enough SOL*",
         "",
         "Repaying a loan needs the *loan amount + Solana network fees*. Here's the math:",
         "",
@@ -243,7 +240,7 @@ export function translateTxError(err, ctx = {}) {
     }
     if (flow === "partialrepay") {
       const lines = [
-        "⚠️ *Not enough SOL for that partial repay amount*",
+        "*Not enough SOL for that partial repay amount*",
         "",
         have != null ? `Your wallet has: \`${fmtSol(have)} SOL\`` : null,
         need != null ? `This would need: \`${fmtSol(need)} SOL\` (incl. fees)` : null,
@@ -258,7 +255,7 @@ export function translateTxError(err, ctx = {}) {
     }
     if (flow === "extend") {
       const lines = [
-        "⚠️ *Not enough SOL to extend this loan*",
+        "*Not enough SOL to extend this loan*",
         "",
         have != null ? `Your wallet has: \`${fmtSol(have)} SOL\`` : null,
         need != null ? `Extend fee needs: \`${fmtSol(need)} SOL\`` : null,
@@ -271,7 +268,7 @@ export function translateTxError(err, ctx = {}) {
     if (flow === "borrow" || flow === "reborrow") {
       const cmd = flow === "reborrow" ? "/reborrow" : "/borrow";
       return [
-        "⚠️ *Not enough SOL for gas + ATA rent*",
+        "*Not enough SOL for gas + ATA rent*",
         "",
         `Borrows need ~0.01 SOL in your wallet for transaction fees and ATA rent — even though the loan itself is paid TO you.`,
         "",
@@ -282,7 +279,7 @@ export function translateTxError(err, ctx = {}) {
     }
     if (flow === "topup") {
       return [
-        "⚠️ *Not enough SOL for tx fees*",
+        "*Not enough SOL for tx fees*",
         "",
         "Top-ups are free besides Solana network fees (~0.001 SOL).",
         "",
@@ -293,7 +290,7 @@ export function translateTxError(err, ctx = {}) {
     }
     if (flow === "withdraw") {
       return [
-        "⚠️ *Not enough SOL to send that out*",
+        "*Not enough SOL to send that out*",
         "",
         "You're trying to withdraw more than the wallet holds (after fees).",
         "",
@@ -305,7 +302,7 @@ export function translateTxError(err, ctx = {}) {
     }
     // Generic insufficient-lamports message
     return [
-      "⚠️ *Not enough SOL in your wallet for this transaction*",
+      "*Not enough SOL in your wallet for this transaction*",
       "",
       have != null ? `Your wallet has: \`${fmtSol(have)} SOL\`` : null,
       short != null ? `Short by: *\`${fmtSol(short)} SOL\`*` : null,
@@ -317,7 +314,7 @@ export function translateTxError(err, ctx = {}) {
   // Pattern 2: blockhash expired
   if (/blockhash not found|block hash not found|BlockhashNotFound/i.test(blob)) {
     return [
-      "⚠️ *Transaction expired*",
+      "*Transaction expired*",
       "",
       "You took too long to confirm — Solana blockhashes expire in ~90 seconds.",
       "",
@@ -328,7 +325,7 @@ export function translateTxError(err, ctx = {}) {
   // Pattern 3: signature verification / wrong signer
   if (/Signature verification failed|missing signer|InvalidAccountData/i.test(blob)) {
     return [
-      "⚠️ *Signing issue*",
+      "*Signing issue*",
       "",
       "The transaction couldn't be signed correctly. This is usually transient.",
       "",
@@ -339,7 +336,7 @@ export function translateTxError(err, ctx = {}) {
   // Pattern 4: account already in use / already closed / state mismatch
   if (/AccountAlreadyInUse|AccountNotInitialized|account discriminator|already closed/i.test(blob)) {
     return [
-      "⚠️ *Account state mismatch*",
+      "*Account state mismatch*",
       "",
       "Looks like the on-chain state changed between when we read it and when we tried to update it.",
       "",
@@ -350,7 +347,7 @@ export function translateTxError(err, ctx = {}) {
   // Pattern 5: network / RPC
   if (/fetch failed|ECONNRESET|ETIMEDOUT|getaddrinfo|network error|429|503/i.test(raw)) {
     return [
-      "⚠️ *Network hiccup*",
+      "*Network hiccup*",
       "",
       "RPC had a brief issue — usually transient.",
       "",
@@ -370,7 +367,7 @@ export function translateTxError(err, ctx = {}) {
       // always means the wallet signing doesn't match the borrower stored
       // in the loan PDA — i.e., user changed wallets after borrowing.
       ConstraintHasOne: [
-        "⚠️ *This wallet didn't take out the loan*",
+        "*This wallet didn't take out the loan*",
         "",
         "The loan you're trying to act on was opened by a different wallet than the one currently signing. Solana enforces this at the program level.",
         "",
@@ -382,49 +379,49 @@ export function translateTxError(err, ctx = {}) {
         "_If the original wallet isn't in your /wallets list, hit /support and we'll help you figure out the recovery path._",
       ].join("\n"),
       ConstraintSeeds: [
-        "⚠️ *Account mismatch*",
+        "*Account mismatch*",
         "",
         "The transaction tried to reference an account that doesn't match what the program expects. Usually means stale data — refresh the bot menu and try again.",
         "",
         "If it keeps happening, /support and we'll dig in.",
       ].join("\n"),
       AccountNotInitialized: [
-        "⚠️ *Account doesn't exist yet*",
+        "*Account doesn't exist yet*",
         "",
         "The on-chain account this transaction needs hasn't been created. For a first-time deposit this is usually automatic — for other flows it may mean the program state isn't where the bot thinks it is.",
         "",
         "Retry the action. If it persists, /support.",
       ].join("\n"),
       LoanNotActive: [
-        "⚠️ *Loan is no longer active*",
+        "*Loan is no longer active*",
         "",
         "This loan has already been closed (repaid, extended, or liquidated). It's no longer borrowable / repayable.",
         "",
         "Check /positions for your CURRENT active loans, or /history for past ones.",
       ].join("\n"),
       LoanExpired: [
-        "⚠️ *Loan is past its due date*",
+        "*Loan is past its due date*",
         "",
         "The deadline passed. Any moment now a keeper will auto-liquidate it. You may not be able to extend or partial-repay anymore — your only option is to /repay in full IMMEDIATELY, before the liquidation tx lands.",
         "",
         "If liquidation already happened, your collateral has been claimed but you keep the borrowed SOL. Check /history for the final state.",
       ].join("\n"),
       InsufficientCollateral: [
-        "⚠️ *Not enough collateral for this action*",
+        "*Not enough collateral for this action*",
         "",
         "The collateral value relative to debt doesn't satisfy the requirement. Likely the token price moved against you between when you confirmed and when the tx landed.",
         "",
         "Try again at the current price — the bot will quote fresh numbers.",
       ].join("\n"),
       MintNotEnabled: [
-        "⚠️ *This token is currently paused as collateral*",
+        "*This token is currently paused as collateral*",
         "",
         "The token-health watcher disabled this mint (liquidity dropped, holder concentration spiked, or another safety signal). Existing loans stay active; new borrows are blocked until the token recovers.",
         "",
         "Check /supported for currently-enabled collateral tokens.",
       ].join("\n"),
       BorrowingPaused: [
-        "⚠️ *Protocol borrowing is paused*",
+        "*Protocol borrowing is paused*",
         "",
         "Admin paused new borrows (maintenance, emergency, etc.). Existing loans are unaffected.",
         "",
@@ -434,7 +431,7 @@ export function translateTxError(err, ctx = {}) {
     if (knownErrors[code]) return knownErrors[code];
     // Unknown anchor error — generic fallback with the code surfaced
     return [
-      `⚠️ *Transaction rejected: ${code}*`,
+      ` *Transaction rejected: ${code}*`,
       "",
       "The program declined this transaction. This is a specific on-chain rule failure — common ones include past-due loans, disabled tokens, and limit issues.",
       "",
@@ -444,7 +441,7 @@ export function translateTxError(err, ctx = {}) {
 
   // Fallback: cleaned-up raw error
   return [
-    `❌ *${flow[0].toUpperCase() + flow.slice(1)} failed*`,
+    ` *${flow[0].toUpperCase() + flow.slice(1)} failed*`,
     "",
     `\`${raw.slice(0, 200)}\``,
     "",

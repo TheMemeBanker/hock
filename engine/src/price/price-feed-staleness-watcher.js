@@ -24,7 +24,7 @@
  * stale-oracle checks. This is a proactive observability layer so
  * the operator sees degradation in real time, not after first failure.
  */
-import { query } from "../TODO-hock/db.js";
+import { query } from "../db/pool.js";
 import { Connection, PublicKey } from "@solana/web3.js";
 import { makeConnection } from "../rpc/rpc.js";
 
@@ -182,7 +182,7 @@ async function runOnce() {
   // operator's user_id exactly like preflight.js does; if it isn't configured,
   // log the alert instead of attempting an insert that can never satisfy the
   // constraint.
-  const { enqueueNotification } = await import("../TODO-hock/notifications.js");
+  const { enqueueNotification } = await import("../notify/outbox.js");
   const operatorUserId = Number(process.env.OPERATOR_USER_ID);
   const operatorConfigured = Number.isFinite(operatorUserId) && operatorUserId > 0;
 

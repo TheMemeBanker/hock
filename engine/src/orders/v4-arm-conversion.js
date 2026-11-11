@@ -17,7 +17,7 @@
  * so leg 2 would be refused on-chain. Hence `deriveArmingCaps` below —
  * per-fire is the LARGEST leg, total is the SUM.
  *
- * ⚠️ V4.1 ONLY. These instructions DO NOT EXIST in the deployed V4 program *, and V4.1 also changes the Loan account layout. Every entry
+  * V4.1 ONLY. These instructions DO NOT EXIST in the deployed V4 program *, and V4.1 also changes the Loan account layout. Every entry
  * point here refuses to build unless PROGRAM_ID_V4_1 is explicitly configured,
  * so this can never be aimed at the live program by accident.
  */
@@ -35,10 +35,10 @@ export const DIRECTION_TAKE_PROFIT = 0;
 export const DIRECTION_STOP_LOSS = 1;
 
 function v41ProgramId() {
-  const raw = process.env.PROGRAM_ID_V4_1;
+  const raw = process.env.PROGRAM_ID;
   if (!raw) {
     throw new Error(
-      "arm_conversion is V4.1-only and PROGRAM_ID_V4_1 is not set. " +
+      "arm_conversion is V4.1-only and PROGRAM_ID is not set. " +
         "Refusing to build — the deployed V4 program has no such instruction.",
     );
   }

@@ -1,52 +1,50 @@
 /**
- * HTTP health endpoint + in-process stall watchdog.
+ * /health endpoint + stall detector.
  *
- * GET /health (also / and /healthz) → 200 {ok:true,...} while the watcher is
- * ticking, 503 {ok:false,...} once it has stalled past the threshold. Lets
- * the host (set the service healthcheck path to /health) or any external
- * monitor probe the engine DIRECTLY and restart a wedged loop — independent
- * of the DB heartbeat the bot reads.
+ * Body: { ok, service, instance, cluster, programId, loops{name:{lastTickAgeMs,
+ * stalled,...}}, gauges{stuck_orders, firing_orders, feed_age_seconds:{mint:age},
+ * outbox_backlog, rpc_primary_degraded, db}, stalled }.
  *
- * The same staleness check runs on an internal timer: if the loop has made no
- * progress for STALL_MS, the engine logs, best-effort DMs the operator, and
- * exit(1)s for a clean host restart. Safe because the fire path writes a
- * fail-closed breadcrumb before broadcast, so a restart can never double-fire
- * an order (see project_limitclose_engine_fire_reliability).
+ * A loop that misses 4 intervals marks the service degraded (503). If NO loop
+ * has made progress for STALL_MS the process exits 1 so the supervisor restarts
+ * it; the fail-closed claim pattern means no order double-fires on restart.
  */
 import http from "node:http";
 import { getLiveness } from "./liveness.js";
-import { enqueueNotification } from "../TODO-hock/notifications.js";
+import { notifyAdmin } from "../notify/admin.js";
+import { getPrimaryHealth } from "../rpc/connection.js";
+import { dbPing } from "../db/pool.js";
 
-const POLL_MS = Number(process.env.LIMIT_CLOSE_POLL_MS) || 30_000;
-// Generous: 6× the poll interval, floored at 3 min, so a handful of slow ticks
-// (thin Jupiter routes, RPC retries) never trip a needless restart.
-const STALL_MS =
-  Number(process.env.LIMIT_CLOSE_STALL_MS) || Math.max(POLL_MS * 6, 180_000);
-const PORT =
-  Number(process.env.PORT) || Number(process.env.HEALTH_PORT) || 8080;
+const STALL_MS = Number(process.env.ENGINE_STALL_MS) || 300_000;
+const PORT = Number(process.env.HEALTH_PORT) || 3001;
 
 let server = null;
 let watchdog = null;
 
-function buildStatus() {
+async function buildStatus() {
   const live = getLiveness();
-  // Boot grace: never report stalled (or restart) until the engine has been
-  // up at least one full stall window, so a slow first tick can't trip it.
   const stalled = live.uptimeMs >= STALL_MS && live.lastProgressAgeMs > STALL_MS;
+  const anyLoopStalled = Object.values(live.loops).some((l) => l.stalled);
+  const db = await dbPing().catch((e) => ({ ok: false, error: e.message }));
   return {
-    ok: !stalled,
-    service: "limit-close-engine",
+    ok: !stalled && !anyLoopStalled && db.ok,
+    service: "hock-engine",
+    instance: process.env.ENGINE_INSTANCE_ID || "engine",
+    cluster: process.env.HOCK_CLUSTER || "unknown",
+    programId: process.env.PROGRAM_ID || null,
     stalled,
     stallThresholdMs: STALL_MS,
+    rpc: getPrimaryHealth(),
+    db: { ok: db.ok, latencyMs: db.latencyMs, error: db.error || null },
     ...live,
   };
 }
 
 export function startHealthServer() {
-  server = http.createServer((req, res) => {
+  server = http.createServer(async (req, res) => {
     const path = (req.url || "").split("?")[0];
     if (path === "/health" || path === "/healthz" || path === "/") {
-      const status = buildStatus();
+      const status = await buildStatus();
       res.writeHead(status.ok ? 200 : 503, { "Content-Type": "application/json" });
       res.end(JSON.stringify(status));
       return;
@@ -54,63 +52,34 @@ export function startHealthServer() {
     res.writeHead(404, { "Content-Type": "application/json" });
     res.end(JSON.stringify({ error: "not_found" }));
   });
-  // A bound-port failure must NOT crash the engine — health is auxiliary.
   server.on("error", (err) => {
-    console.error(
-      `[limit-close-engine] health server error (continuing without it): ${err.message}`,
-    );
+    console.error(`[health] server error (continuing without it): ${err.message}`);
   });
   server.listen(PORT, () => {
-    console.log(
-      `[limit-close-engine] health endpoint on :${PORT} (/health); stall threshold ${Math.round(
-        STALL_MS / 1000,
-      )}s`,
-    );
+    console.log(`[health] /health on :${PORT}; stall threshold ${Math.round(STALL_MS / 1000)}s`);
   });
 
-  // In-process stall watchdog — self-heal a wedged loop.
-  watchdog = setInterval(() => {
-    const status = buildStatus();
-    if (!status.stalled) return;
-    console.error(
-      `[limit-close-engine] STALL: no tick progress for ${Math.round(
-        status.lastProgressAgeMs / 1000,
-      )}s (threshold ${Math.round(STALL_MS / 1000)}s, last status '${status.lastStatus}') — restarting (exit 1).`,
-    );
-    const operatorUserId = Number(process.env.OPERATOR_USER_ID);
-    if (Number.isFinite(operatorUserId) && operatorUserId > 0) {
-      // Fire-and-forget; the timed exit below never waits on the DB write
-      // (which may itself be the hung dependency).
-      enqueueNotification({
-        userId: operatorUserId,
-        kind: "engine_stall_restart",
-        payload: {
-          service: "limit-close-engine",
-          stalled_for_seconds: Math.round(status.lastProgressAgeMs / 1000),
-          stall_threshold_seconds: Math.round(STALL_MS / 1000),
-          last_status: status.lastStatus,
-          detected_at: new Date().toISOString(),
-          remedy:
-            "The fire loop stopped making progress and was auto-restarted. Check RPC/DB health and recent logs; the fail-closed breadcrumb means no order double-fired.",
-        },
-      }).catch(() => {});
-    }
+  watchdog = setInterval(async () => {
+    const live = getLiveness();
+    const stalled = live.uptimeMs >= STALL_MS && live.lastProgressAgeMs > STALL_MS;
+    if (!stalled) return;
+    console.error(`[health] STALL: no loop progress for ${Math.round(live.lastProgressAgeMs / 1000)}s; exiting 1 for supervisor restart`);
+    await notifyAdmin({
+      kind: "engine_stall_restart",
+      payload: {
+        stalled_for_seconds: Math.round(live.lastProgressAgeMs / 1000),
+        last_status: live.lastStatus,
+        remedy: "Engine stopped making progress and restarted itself. Check RPC and DB health and the last log lines.",
+      },
+      throttleMs: 0,
+    }).catch(() => {});
     setTimeout(() => process.exit(1), 300);
-  }, Math.max(POLL_MS, 30_000));
+  }, 30_000);
   watchdog.unref?.();
+  return server;
 }
 
 export function stopHealthServer() {
-  if (watchdog) {
-    clearInterval(watchdog);
-    watchdog = null;
-  }
-  if (server) {
-    try {
-      server.close();
-    } catch {
-      /* already closing */
-    }
-    server = null;
-  }
+  if (watchdog) { clearInterval(watchdog); watchdog = null; }
+  if (server) { try { server.close(); } catch {} server = null; }
 }

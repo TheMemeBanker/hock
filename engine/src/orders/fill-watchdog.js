@@ -21,8 +21,8 @@
  * Mandated 2026-06-29 (operator): "a fill-success watchdog that alerts if any
  * armed order is triggered-but-unfilled past N minutes."
  */
-import { query } from "../TODO-hock/db.js";
-import { enqueueNotification } from "../TODO-hock/notifications.js";
+import { query } from "../db/pool.js";
+import { enqueueNotification } from "../notify/outbox.js";
 import { getFailoverConnection } from "../rpc/rpc.js";
 import { getCurrentPrice, isTriggerHit } from "../price/pricing.js";
 

@@ -41,7 +41,7 @@
  *     the borrower's stated worst-case-acceptable-price. Smaller
  *     chunks also mean smaller individual MEV targets.
  */
-import { query } from "../TODO-hock/db.js";
+import { query } from "../db/pool.js";
 
 // Server-side constants. Not borrower-configurable in v1 — TWAP is
 // the engine's automatic recovery, not a knob.

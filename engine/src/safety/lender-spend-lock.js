@@ -22,7 +22,7 @@
  *
  * Operator-mandated 2026-06-29 ("never a deficit"; lender gas never starved).
  */
-import { getClient } from "../TODO-hock/db.js";
+import { getClient } from "../db/pool.js";
 
 // ONE key shared by ALL lender-spending services (distinct from any
 // per-service lock). Every lender-key spender MUST wrap its tx in this.

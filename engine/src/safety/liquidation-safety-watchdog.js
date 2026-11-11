@@ -20,8 +20,8 @@
  *   LIQ_WATCHDOG_GRACE_MIN  — how far past due before alerting (default 15 min;
  *                             gives a healthy keeper ample time to fire)
  */
-import { query } from "../TODO-hock/db.js";
-import { notifyAdmin, getAdminId } from "../TODO-hock/admin-notify.js";
+import { query } from "../db/pool.js";
+import { notifyAdmin, getAdminId } from "../notify/admin.js";
 
 const POLL_MS = Number(process.env.LIQ_WATCHDOG_POLL_MS) || 10 * 60_000;
 const GRACE_MIN = Number(process.env.LIQ_WATCHDOG_GRACE_MIN) || 15;
@@ -95,7 +95,7 @@ async function tick(bot) {
     await notifyAdmin(
       bot,
       [
-        `🔴 LIQUIDATION KEEPER CANARY`,
+        `LIQUIDATION KEEPER CANARY`,
         `${rows.length} active loan(s) OVERDUE > ${GRACE_MIN}m and NOT liquidated.`,
         `The keeper (Liquidation Scavenger) may be down / stalled / unfunded — bad debt is starting to accrue.`,
         ``,

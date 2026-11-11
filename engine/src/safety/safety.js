@@ -1,184 +1,141 @@
 /**
- * Pre-flight safety gates that run AT FIRE TIME, after a trigger has
- * been deemed hit but BEFORE any on-chain action. Each gate's failure
- * mode is documented: cancel vs. fail vs. retry.
+ * Pre-fire safety gates for limit-close orders and liquidations.
  *
- * Defense in depth — the schema and command handlers already enforce
- * many of these at arm time, but the engine re-checks at fire time
- * because state can change between arm and fire (the operator might
- * have flipped the site-global pause, the token might have been
- * disabled by the screener, the loan might have been partially
- * repaid such that the math no longer works, etc.).
+ * Two layers:
+ *   runPreFlightGates  -- cheap DB/state checks (order still armed, loan still
+ *                         open on chain, kill switch off).
+ *   runFireGates       -- the three operational rules from THREAT_MODEL.md:
+ *                         feed freshness, slot advance across two reads, and a
+ *                         simulation of the exact convert_collateral_slice tx
+ *                         whose min_sol_out is at least the oracle floor.
  *
- * Gate failure semantics:
- *   - 'cancel'  — the order can never legitimately fire (e.g. loan no
- *                 longer active). Mark cancelled with the reason.
- *   - 'retry'   — transient condition (e.g. site is paused). Leave
- *                 order armed; next tick will re-evaluate.
- *   - 'fail'    — unexpected error. Mark failed with details for ops.
+ * Every result is { ok, action: 'cancel'|'retry'|'fire', reason, detail }.
+ * Callers never fire on anything but ok === true, and never retry a failed
+ * fire without calling both layers again.
  */
-import { query } from "../TODO-hock/db.js";
+import { query } from "../db/pool.js";
+import {
+  assertSlotAdvancing,
+  readPriceFeed,
+  oracleFloorLamports,
+  MAX_PRICE_STALENESS_SECONDS,
+} from "../chain/program.js";
+import { executeOnChainConvertSlice } from "../tx/on-chain-convert-slice.js";
 
-/**
- * Run all gates against (order, loan, mintRow). Returns
- *   { ok: true } if everything passes,
- *   { ok: false, action: 'cancel'|'retry'|'fail', reason, detail? } otherwise.
- */
-export async function runPreFlightGates({ order, loan, mintRow }) {
-  // 1. Loan still active? (User may have repaid or been liquidated.)
-  if (loan.status !== "active") {
-    return {
-      ok: false,
-      action: "cancel",
-      reason: "loan_no_longer_active",
-      detail: `loan is now ${loan.status}`,
-    };
+export const FEED_MAX_AGE_SECONDS = Number(process.env.WATCHER_FEED_MAX_AGE_SECONDS) || 90;
+
+export async function runPreFlightGates({ order, loan, chainLoan }) {
+  if (order && order.status !== "armed" && order.status !== "firing") {
+    return { ok: false, action: "cancel", reason: "order_not_armed", detail: `order is ${order.status}` };
   }
-
-  // 2. Owed amount is real (positive). Defensive against weird DB state.
-  if (BigInt(loan.owed_lamports) <= 0n) {
-    return {
-      ok: false,
-      action: "cancel",
-      reason: "loan_already_fully_repaid",
-    };
+  if (!chainLoan) {
+    return { ok: false, action: "cancel", reason: "loan_missing_on_chain" };
   }
-
-  // 3. Site-global pause respected.
-  const { rows } = await query(
-    `SELECT disabled, reason FROM site_global_state LIMIT 1`,
-  ).catch(() => ({ rows: [] }));
-  if (rows[0]?.disabled === true) {
-    return {
-      ok: false,
-      action: "retry",
-      reason: "site_globally_paused",
-      detail: rows[0]?.reason || "",
-    };
+  const statusKey = Object.keys(chainLoan.status || {})[0];
+  if (statusKey !== "active") {
+    return { ok: false, action: "cancel", reason: "loan_no_longer_active", detail: `loan is ${statusKey}` };
   }
-
-  // 4. Collateral token still enabled. The screener can disable mid-life
-  //    (e.g. token flagged scammy via /disabletoken).
-  if (!mintRow?.enabled) {
-    return {
-      ok: false,
-      action: "cancel",
-      reason: "collateral_disabled",
-      detail: `mint ${order.collateral_mint?.slice(0, 8)}… no longer enabled`,
-    };
+  if (BigInt(chainLoan.repayAmount.toString()) <= 0n) {
+    return { ok: false, action: "cancel", reason: "loan_already_fully_repaid" };
   }
-
-  // 5. Token wasn't reclassified into an RWA category since arm time.
-  //    For V1 this is a real gate: V1's Jupiter swap path can't handle
-  //    RWA Token-2022 with ScaledUiAmount + transfer hook concerns.
-  //    For V4 this gate IS WRONG and must NEVER cancel — V4's
-  //    convert_collateral_slice path explicitly handles Token-2022
-  //    routing via Pattern B CPI and the in-vault sol_proceeds_vault
-  //    PDA. SPCX is category=stock; operator's V4 SPCX loan 826 /
-  //    order 21 hit $210 trigger, but this gate auto-cancelled the
-  //    fire on 2026-06-17 13:15:22 even though the V4 fire path was
-  //    designed for exactly this case. PERMANENT RULE: V4 loans
-  //    bypass this check.
-  //    See feedback_engine_safety_dont_auto_cancel_v4_loans_on_rwa_reclassification.md.
-  const isV4Loan = !!process.env.PROGRAM_ID_V4 &&
-                   loan.program_id === process.env.PROGRAM_ID_V4;
-  if (!isV4Loan && ["stock", "etf", "metal"].includes(mintRow.category)) {
-    return {
-      ok: false,
-      action: "cancel",
-      reason: "collateral_reclassified_to_rwa",
-      detail: `mint is now category=${mintRow.category}; limit-close on RWAs is v1.1+`,
-    };
+  if (loan && loan.status !== "open") {
+    return { ok: false, action: "retry", reason: "db_loan_not_open", detail: `db says ${loan.status}; reconciler will repair` };
   }
-
-  // 6. Engine kill switch (separate from site-global — operator may want
-  //    to pause limit-close specifically while leaving borrows running).
   if (process.env.LIMIT_CLOSE_DISABLED === "true") {
-    return {
-      ok: false,
-      action: "retry",
-      reason: "engine_kill_switch_on",
-    };
+    return { ok: false, action: "retry", reason: "engine_kill_switch_on" };
   }
-
-  // 7. Order hasn't expired. (V1/V2/V3 only — P0-4.) A V4 in-vault exit whose
-  //    trigger is met must keep attempting until the loan is repaid or the
-  //    order is cancelled; the expires_at clock must NEVER terminally cancel a
-  //    live V4 exit. Mirrors the gate-5 V4 bypass above and the expireOldOrders
-  //    P0-3 carve-out. isV4Loan is already in scope from line 83.
-  if (!isV4Loan && order.expires_at && new Date(order.expires_at) <= new Date()) {
-    return {
-      ok: false,
-      action: "cancel",
-      reason: "order_expired",
-    };
+  if (order) {
+    const { rows } = await query(`SELECT status FROM limit_close_orders WHERE id = $1`, [order.id]);
+    if (!rows[0] || !["armed", "firing"].includes(rows[0].status)) {
+      return { ok: false, action: "cancel", reason: "order_state_changed", detail: rows[0]?.status || "missing" };
+    }
   }
-
-  return { ok: true };
+  return { ok: true, action: "fire" };
 }
 
 /**
- * Slippage / proceeds sanity check — runs AFTER the Jupiter quote is
- * fetched at fire time. Verifies the user actually nets positive (or
- * acceptable) value AFTER fees and the loan repay.
- *
- * Returns { ok: true } or { ok: false, action: 'cancel'|'retry', reason }.
+ * Fire-time gates for one convert slice.
+ * @param connection   RPC connection
+ * @param loanRow      { loan_pda, mint, ... } (DB shape; program_id optional)
+ * @param chainLoan    decoded Loan account
+ * @param decimals     collateral decimals
+ * @param sliceBps     slice to convert
+ * @param jupiterQuote Jupiter quote body for exactly the slice amount
  */
+export async function runFireGates({ connection, loanRow, chainLoan, decimals, sliceBps, jupiterQuote }) {
+  const nowTs = Math.floor(Date.now() / 1000);
+  const feed = await readPriceFeed(connection, loanRow.mint, nowTs);
+  if (!feed || !feed.latest) {
+    return { ok: false, action: "retry", reason: "feed_missing", detail: "no price feed sample for mint" };
+  }
+  if (feed.ageSeconds > Math.min(FEED_MAX_AGE_SECONDS, MAX_PRICE_STALENESS_SECONDS)) {
+    return { ok: false, action: "retry", reason: "feed_stale", detail: `latest sample ${feed.ageSeconds}s old` };
+  }
+  if (!feed.twapReady) {
+    return { ok: false, action: "retry", reason: "twap_not_ready", detail: `${feed.samplesInWindow} samples, oldest ${feed.oldestAgeSeconds}s` };
+  }
+
+  try {
+    await assertSlotAdvancing(connection);
+  } catch (err) {
+    return { ok: false, action: "retry", reason: "slot_not_advancing", detail: err.message };
+  }
+
+  const collateral = BigInt(chainLoan.collateralAmount.toString());
+  const sliceAmount = (collateral * BigInt(sliceBps)) / 10_000n;
+  const floor = oracleFloorLamports({ sliceAmount, spot: feed.latest.price, twap: feed.twap, decimals });
+  const quoted = BigInt(jupiterQuote.otherAmountThreshold || 0);
+  if (quoted < floor) {
+    return {
+      ok: false,
+      action: "retry",
+      reason: "quote_below_oracle_floor",
+      detail: `quote min out ${quoted} < floor ${floor} (spot ${feed.latest.price}, twap ${feed.twap})`,
+      floor,
+    };
+  }
+
+  let sim;
+  try {
+    sim = await executeOnChainConvertSlice({
+      connection,
+      loan: { loan_pda: loanRow.loan_pda, collateral_mint: loanRow.mint, program_id: process.env.PROGRAM_ID },
+      sliceBps,
+      jupiterQuote,
+      dryRun: true,
+      minSolOutFloor: floor,
+    });
+  } catch (err) {
+    return { ok: false, action: "retry", reason: "simulation_threw", detail: err.message?.slice(0, 200) };
+  }
+  if (sim?.simulation?.err) {
+    return {
+      ok: false,
+      action: "retry",
+      reason: "simulation_failed",
+      detail: `${JSON.stringify(sim.simulation.err)} ${(sim.simulation.logs || []).slice(-4).join(" | ")}`.slice(0, 400),
+      floor,
+    };
+  }
+  return { ok: true, action: "fire", floor, feed, unitsConsumed: sim?.simulation?.unitsConsumed ?? null };
+}
+
 export function runProceedsSanityCheck({ expectedProceedsLamports, loanOwedLamports, protocolFeeBps, minProceedsLamports, triggerDirection = "above" }) {
   const fee = (expectedProceedsLamports * BigInt(protocolFeeBps)) / 10_000n;
   const afterFee = expectedProceedsLamports - fee;
   const netToUser = afterFee - loanOwedLamports;
-
-  // Direction-aware safety floor.
-  //
-  // For take-profit ('above'): the user is selling AT A GAIN. The 0.005 SOL
-  // floor catches transient price misses (small slippage, fee-edge cases)
-  // so the engine retries instead of firing into a near-zero net.
-  //
-  // For stop-loss ('below'): cutting losses is exactly the case where the
-  // user EXPECTS to net little/nothing — that is the trade. A high floor
-  // would block the very fires the user armed the order for. We replace
-  // the 0.005 SOL gain floor with a much looser solvency floor: the user
-  // must still come out non-negative (the on-chain repay would otherwise
-  // fail). The user-set minProceedsLamports is still honored as an
-  // explicit downside cap if they set one.
-  //
-  // The 1% protocol fee applies in BOTH directions — operator rule
-  // 2026-06-12 — and is already deducted above via the fee calc.
   if (triggerDirection === "below") {
-    // Stop-loss: only require the user doesn't go negative outright.
-    // Net could be 0 (everything goes to repay + fee) and that's an
-    // intended outcome for someone cutting losses near the liquidation edge.
     if (netToUser < 0n) {
-      return {
-        ok: false,
-        action: "retry",
-        reason: "proceeds_insolvent_stop_loss",
-        detail: `net=${netToUser} below zero; collateral cannot cover repay + 1% fee. Retry next tick.`,
-      };
+      return { ok: false, action: "retry", reason: "proceeds_insolvent_stop_loss", detail: `net=${netToUser} below zero` };
     }
   } else {
-    // Take-profit: hard floor catches transient gain misses.
-    const SAFETY_MARGIN = 5_000_000n; // 0.005 SOL
+    const SAFETY_MARGIN = 5_000_000n;
     if (netToUser < SAFETY_MARGIN) {
-      return {
-        ok: false,
-        action: "retry",
-        reason: "proceeds_below_safety_floor",
-        detail: `net=${netToUser} below safety ${SAFETY_MARGIN}; price may not have risen enough`,
-      };
+      return { ok: false, action: "retry", reason: "proceeds_below_safety_floor", detail: `net=${netToUser} below ${SAFETY_MARGIN}` };
     }
   }
-
-  // Optional user-set minimum proceeds — honored in both directions.
   if (minProceedsLamports && netToUser < BigInt(minProceedsLamports)) {
-    return {
-      ok: false,
-      action: "retry",
-      reason: "user_min_proceeds_not_met",
-      detail: `net=${netToUser} below user min ${minProceedsLamports}`,
-    };
+    return { ok: false, action: "retry", reason: "user_min_proceeds_not_met", detail: `net=${netToUser} below user min ${minProceedsLamports}` };
   }
-
   return { ok: true, expectedFee: fee, expectedNetToUser: netToUser };
 }

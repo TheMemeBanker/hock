@@ -1,11 +1,11 @@
 /**
- * Auto-apply pending SQL migrations at bot startup.
+ * Auto-apply pending SQL migrations at engine startup.
  *
  * History — this exists because migration 017 sat unapplied in prod for
  * several hours after its PR merged. Migrations had previously been
  * applied manually via psql + the host CLI. That worked until it didn't:
  * the operator merged a PR containing a migration, the host redeployed
- * the bot code (which references the new table at runtime), but the
+ * the engine code (which references the new table at runtime), but the
  * table itself was never created. The runtime query would have errored
  * "relation does not exist" the first time it fired.
  *
@@ -21,27 +21,30 @@
  * applied earlier is a no-op. Safe to enable retroactively.
  *
  * The runner FAILS LOUDLY on a bad migration (throws on the caller).
- * The caller in src/index.js can choose to crash the bot or log + continue.
- * We crash: a bot running against a half-migrated DB is worse than a
+ * The caller in src/index.js can choose to crash the engine or log + continue.
+ * We crash: an engine running against a half-migrated DB is worse than a
  * bot that's down and visibly broken.
  */
 import { readdirSync, readFileSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
-import { query, pool } from "../src/TODO-hock/db.js";
+import { query, pool } from "../src/db/pool.js";
 
 const __dirname = dirname(fileURLToPath(import.meta.url));
-const MIGRATIONS_DIR = join(__dirname, "migrations");
+const MIGRATIONS_DIR = process.env.MIGRATIONS_DIR
+  ? (process.env.MIGRATIONS_DIR.startsWith("/") ? process.env.MIGRATIONS_DIR : join(__dirname, "..", process.env.MIGRATIONS_DIR))
+  : join(__dirname, "migrations");
 
 async function ensureLedger() {
   await query(`
     CREATE TABLE IF NOT EXISTS schema_migrations (
-      filename     text        PRIMARY KEY,
-      applied_at   timestamptz NOT NULL DEFAULT now(),
-      checksum_sha256 text     NOT NULL,
-      duration_ms  integer
+      version      text        PRIMARY KEY,
+      applied_at   timestamptz NOT NULL DEFAULT now()
     )
   `);
+  // Same shape 001_baseline.sql creates; the runner adds its bookkeeping columns.
+  await query(`ALTER TABLE schema_migrations ADD COLUMN IF NOT EXISTS checksum_sha256 text`);
+  await query(`ALTER TABLE schema_migrations ADD COLUMN IF NOT EXISTS duration_ms integer`);
 }
 
 function sha256(s) {
@@ -55,7 +58,7 @@ function sha256(s) {
 }
 
 async function appliedLedger() {
-  const { rows } = await query(`SELECT filename, checksum_sha256 FROM schema_migrations`);
+  const { rows } = await query(`SELECT version AS filename, checksum_sha256 FROM schema_migrations`);
   const map = new Map();
   for (const r of rows) map.set(r.filename, r.checksum_sha256);
   return map;
@@ -73,7 +76,7 @@ function listMigrationFiles() {
 }
 
 // Postgres advisory-lock key dedicated to the migration runner. Stable
-// 32-bit int so concurrent bot instances (during host redeploys when
+// 32-bit int so concurrent engine instances (during host redeploys when
 // old + new run briefly together) serialize through the same lock and
 // only one applies pending migrations at a time. The lock is auto-released
 // on session end so a crashing bot doesn't strand the lock.
@@ -97,7 +100,7 @@ const DANGEROUS_UNICODE_RE = /[​-‏‪-‮⁠-⁩﻿]/;
  *
  * Multi-instance safety: takes a session-level Postgres advisory lock
  * for the duration of the apply loop. During host redeploys both
- * old + new bot instances briefly run together; without the lock both
+ * old + new engine instances briefly run together; without the lock both
  * race to apply the same files, with the second hitting a primary-key
  * conflict on schema_migrations.filename (best case) or executing
  * partially-non-idempotent SQL twice (worst case). The advisory lock
@@ -131,7 +134,7 @@ export async function applyPendingMigrations() {
       // already-applied historical files are trusted (operator review
       // surfaced no issues at the time they ran) and we don't want a
       // ZWJ-in-a-comment in a year-old migration to start blocking
-      // bot startup. New migrations being applied for the first time
+      // engine startup. New migrations being applied for the first time
       // get the full check.
       if (!already.has(filename) && DANGEROUS_UNICODE_RE.test(sql)) {
         throw new Error(`[migrations] ${filename} contains hidden Unicode characters (zero-width or bidi-override) — refusing to apply. Strip them and re-stage.`);
@@ -156,7 +159,7 @@ export async function applyPendingMigrations() {
         await client.query("BEGIN");
         await client.query(sql);
         await client.query(
-          `INSERT INTO schema_migrations (filename, checksum_sha256, duration_ms)
+          `INSERT INTO schema_migrations (version, checksum_sha256, duration_ms)
            VALUES ($1, $2, $3)`,
           [filename, checksum, Date.now() - t0],
         );
@@ -209,9 +212,9 @@ export async function backfillLedger() {
     const sql = readFileSync(path, "utf-8");
     const checksum = await sha256(sql);
     await query(
-      `INSERT INTO schema_migrations (filename, checksum_sha256, duration_ms)
+      `INSERT INTO schema_migrations (version, checksum_sha256, duration_ms)
        VALUES ($1, $2, NULL)
-       ON CONFLICT (filename) DO NOTHING`,
+       ON CONFLICT (version) DO NOTHING`,
       [filename, checksum],
     );
     recorded++;

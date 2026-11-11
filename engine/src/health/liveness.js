@@ -1,41 +1,56 @@
 /**
- * In-process liveness signal for the engine.
+ * Liveness bookkeeping shared by every loop and the health server.
  *
- * The watcher calls markProgress() once per poll tick — specifically at the
- * per-tick heartbeat write, a point a tick only reaches after its shared
- * dependencies (DB, RPC, Jupiter probe) have responded. The health server
- * reports the age of the last mark, and an in-process stall watchdog
- * (health-server.js) self-restarts the process if that age crosses the
- * threshold.
- *
- * Why in-process and not just the DB heartbeat: the engine_heartbeats row
- * tells the BOT the engine is dead, but it cannot make the engine restart
- * ITSELF. This module + the watchdog close that gap so a wedged loop heals
- * without waiting for a human. Marking at the heartbeat point (not at tick
- * START) matters because the watcher schedules ticks with an overlapping
- * setInterval — a new tick begins every POLL_MS regardless of whether the
- * prior one finished, so "a tick started" would stay fresh even while every
- * tick hangs. "A tick reached the heartbeat" only stays fresh when the loop
- * is genuinely making progress.
+ * heartbeat(loop, status, extra)  -- a loop finished a tick
+ * setGauge(name, value)           -- stuck counts, feed staleness per mint, etc.
+ * getLiveness()                   -- snapshot for /health
  */
+const bootAt = Date.now();
 let lastProgressAt = Date.now();
 let lastStatus = "boot";
-const bootAt = Date.now();
+const loops = new Map();
+const gauges = new Map();
 
-/** Called once per healthy tick. `status` mirrors the DB heartbeat status. */
 export function markProgress(status) {
   lastProgressAt = Date.now();
   if (status) lastStatus = status;
 }
 
-/** Snapshot of liveness for the health endpoint + stall watchdog. */
+export function registerLoop(name, { intervalMs }) {
+  loops.set(name, { intervalMs, lastTickAt: null, lastOkAt: null, lastStatus: "registered", ticks: 0, errors: 0, lastError: null, extra: {} });
+}
+
+export function heartbeat(name, status = "ok", extra = {}) {
+  const l = loops.get(name) || { intervalMs: null, ticks: 0, errors: 0, extra: {} };
+  l.lastTickAt = Date.now();
+  l.ticks += 1;
+  l.lastStatus = status;
+  if (status === "ok") l.lastOkAt = l.lastTickAt;
+  if (status === "error") { l.errors += 1; l.lastError = extra.error || null; }
+  l.extra = { ...l.extra, ...extra };
+  loops.set(name, l);
+  markProgress(`${name}:${status}`);
+}
+
+export function setGauge(name, value) {
+  gauges.set(name, value);
+}
+
 export function getLiveness() {
   const now = Date.now();
+  const loopView = {};
+  for (const [name, l] of loops) {
+    const ageMs = l.lastTickAt ? now - l.lastTickAt : null;
+    const stalled = l.intervalMs && l.lastTickAt ? ageMs > Math.max(l.intervalMs * 4, 60_000) : l.lastTickAt == null && now - bootAt > 120_000;
+    loopView[name] = { ...l, lastTickAgeMs: ageMs, stalled };
+  }
   return {
     bootAt,
     uptimeMs: now - bootAt,
     lastProgressAt,
     lastProgressAgeMs: now - lastProgressAt,
     lastStatus,
+    loops: loopView,
+    gauges: Object.fromEntries(gauges),
   };
 }

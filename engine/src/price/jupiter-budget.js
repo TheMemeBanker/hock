@@ -40,7 +40,7 @@
  *
  * See project_jupiter_request_budgeting_p0.md for the design history.
  */
-import { query } from "../TODO-hock/db.js";
+import { query } from "../db/pool.js";
 
 const BUDGET_PER_SEC = Number(process.env.JUPITER_BUDGET_PER_SEC) || 10;
 const BUDGET_MAX = Number(process.env.JUPITER_BUDGET_MAX) || 30;
