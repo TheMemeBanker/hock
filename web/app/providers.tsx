@@ -18,6 +18,7 @@ const DEMO_WALLET = process.env.NEXT_PUBLIC_DEMO_WALLET === "true" && CLUSTER !=
 export function Providers({ children }: { children: React.ReactNode }) {
   const endpoint = useMemo(() => {
     if (typeof window === "undefined") return "http://127.0.0.1:8899";
+    if (process.env.NEXT_PUBLIC_RPC_URL) return process.env.NEXT_PUBLIC_RPC_URL; // static copy: no proxy, talk to the public endpoint
     return `${window.location.origin}/api/rpc`;
   }, []);
   const wallets = useMemo(() => [new PhantomWalletAdapter(), new SolflareWalletAdapter(), ...(DEMO_WALLET ? [new DemoKeypairWalletAdapter()] : [])], []);

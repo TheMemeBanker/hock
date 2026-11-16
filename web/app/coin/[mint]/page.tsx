@@ -14,7 +14,6 @@ import { fmtAge, fmtPriceLamports, fmtUsd, DASH } from "@/lib/fmt";
 import { POOL_PDA, PROGRAM_ID } from "@/lib/solana/constants";
 import { BorrowPanel } from "./BorrowPanel";
 
-export const revalidate = 10;
 
 export async function generateMetadata({ params }: { params: Promise<{ mint: string }> }) {
   const { mint } = await params;

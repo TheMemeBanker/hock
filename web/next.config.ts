@@ -13,10 +13,17 @@ const csp = [
   "form-action 'self'",
 ].join("; ");
 
+// STATIC_EXPORT=1 builds the cosmetic/static copy of the site (GitHub Pages): no API routes, no server reads,
+// optional basePath for a project-page preview URL. Security headers come from the host in that mode.
+const STATIC = process.env.STATIC_EXPORT === "1";
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH || "";
+
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  ...(STATIC ? { output: "export" as const, trailingSlash: true, basePath: BASE, assetPrefix: BASE || undefined, images: { unoptimized: true } } : {}),
   async headers() {
+    if (STATIC) return [];
     return [
       {
         source: "/(.*)",

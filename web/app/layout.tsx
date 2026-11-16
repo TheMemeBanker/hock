@@ -3,6 +3,7 @@ import "./globals.css";
 import { Providers } from "./providers";
 
 const SITE = process.env.NEXT_PUBLIC_SITE_URL ?? "https://hock.fun";
+const BASE = process.env.NEXT_PUBLIC_BASE_PATH ?? ""; // non-empty only for the project-page preview of the static copy
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE),
@@ -11,11 +12,11 @@ export const metadata: Metadata = {
     "A Solana launchpad with built-in lending. Every coin launched on HOCK is born collateral: launch in one signature, clear the gate, borrow SOL against it. Non-custodial, in-vault.",
   icons: {
     icon: [
-      { url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" },
-      { url: "/brand/favicon-64.png", sizes: "64x64", type: "image/png" },
-      { url: "/brand/hock-mark.svg", type: "image/svg+xml" },
+      { url: `${BASE}/brand/favicon-32.png`, sizes: "32x32", type: "image/png" },
+      { url: `${BASE}/brand/favicon-64.png`, sizes: "64x64", type: "image/png" },
+      { url: `${BASE}/brand/hock-mark.svg`, type: "image/svg+xml" },
     ],
-    apple: "/brand/apple-touch-icon.png",
+    apple: `${BASE}/brand/apple-touch-icon.png`,
   },
   openGraph: {
     title: "HOCK — Launch it. Hock it.",
@@ -23,7 +24,7 @@ export const metadata: Metadata = {
     siteName: "HOCK",
     type: "website",
     url: SITE,
-    images: [{ url: "/brand/hock-og-1200x630.png", width: 1200, height: 630 }],
+    images: [{ url: `${BASE}/brand/hock-og-1200x630.png`, width: 1200, height: 630 }],
   },
   twitter: {
     card: "summary_large_image",
@@ -31,7 +32,7 @@ export const metadata: Metadata = {
     creator: "@HockFinance",
     title: "HOCK — Launch it. Hock it.",
     description: "Launch a coin, clear the gate, borrow SOL against it. Non-custodial, in-vault.",
-    images: ["/brand/hock-og-1200x630.png"],
+    images: [`${BASE}/brand/hock-og-1200x630.png`],
   },
 };
 
