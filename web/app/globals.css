@@ -187,7 +187,7 @@ td.mono { white-space: nowrap; }
   .board td { padding: 0; border: 0; min-width: 0; }
   .board td.mono { white-space: normal; }
   .board td[data-label]::before { content: attr(data-label); display: block; font-family: var(--font-mono); font-size: 10px; letter-spacing: .14em; text-transform: uppercase; color: var(--muted); margin-bottom: 3px; }
-  .board td.coin-cell { grid-column: 1 / -1; }
+  .board td.coin-cell, .board td[colspan] { grid-column: 1 / -1; }
   .board td.action-cell { grid-column: 1 / -1; padding-top: 4px; }
   .board td.action-cell a { display: inline-flex; align-items: center; min-height: 40px; padding: 0 14px; border: 1px solid var(--line-2); border-radius: var(--radius-sm); }
   .board tbody tr:hover td { background: transparent; }
