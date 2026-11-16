@@ -11,6 +11,7 @@ restore() {
   [ -d "$SAVE/api" ] && rm -rf app/api && mv "$SAVE/api" app/api
   [ -d "$SAVE/dashboard" ] && rm -rf app/dashboard && mv "$SAVE/dashboard" app/dashboard
   [ -d "$SAVE/coin" ] && rm -rf app/coin && mv "$SAVE/coin" app/coin
+  [ -f "$SAVE/.env.local" ] && mv "$SAVE/.env.local" .env.local
   if [ -f "$SAVE/files.txt" ]; then while IFS= read -r f; do cp "$SAVE/files/$f" "$f"; done < "$SAVE/files.txt"; fi
   rm -rf "$SAVE"
 }
@@ -18,6 +19,8 @@ trap restore EXIT
 if sed --version >/dev/null 2>&1; then SEDI=(sed -i); else SEDI=(sed -i ''); fi
 # coin pages are rendered per mint from the database; the static copy has no database, so it ships none
 mv app/api "$SAVE/api"; mv app/dashboard "$SAVE/dashboard"; mv app/coin "$SAVE/coin"
+# a laptop's .env.local would leak a local database into the static build
+[ -f .env.local ] && mv .env.local "$SAVE/.env.local"
 mkdir -p "$SAVE/files"; : > "$SAVE/files.txt"
 while IFS= read -r f; do
   mkdir -p "$SAVE/files/$(dirname "$f")"; cp "$f" "$SAVE/files/$f"; echo "$f" >> "$SAVE/files.txt"
