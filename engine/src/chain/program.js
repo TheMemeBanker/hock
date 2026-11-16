@@ -79,7 +79,9 @@ export function loadKeypair(envName, { optional = false } = {}) {
     if (optional) return null;
     throw new Error(`${envName} is not set`);
   }
-  const raw = JSON.parse(readFileSync(expandHome(path), "utf8"));
+  // A file path on a laptop, or the JSON byte array itself on a host that has secrets but no files.
+  const text = path.trim().startsWith("[") ? path : readFileSync(expandHome(path), "utf8");
+  const raw = JSON.parse(text);
   return Keypair.fromSecretKey(Uint8Array.from(raw));
 }
 

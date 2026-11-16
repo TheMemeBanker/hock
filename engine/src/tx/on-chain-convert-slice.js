@@ -110,7 +110,7 @@ function loadEngineKeypair() {
       ? path.replace(/^~/, process.env.HOME ?? "")
       : path;
     _cachedEngineKp = Keypair.fromSecretKey(
-      Uint8Array.from(JSON.parse(readFileSync(resolved, "utf8"))),
+      Uint8Array.from(JSON.parse(resolved.trim().startsWith("[") ? resolved : readFileSync(resolved, "utf8"))),
     );
     return _cachedEngineKp;
   }

@@ -24,6 +24,7 @@
  * Then we sign with the pool authority and return the fully signed bytes.
  */
 import http from "node:http";
+import { mountRoute } from "../health/health-server.js";
 import { Transaction, VersionedTransaction, PublicKey, SystemProgram, ComputeBudgetProgram } from "@solana/web3.js";
 import nacl from "tweetnacl";
 import { query } from "../db/pool.js";
@@ -181,10 +182,13 @@ export function startCosignServer({ log = console } = {}) {
   if (!authority) { log.warn("[cosign] POOL_AUTHORITY_KEYPAIR_PATH not set; borrow co-sign disabled"); return null; }
   const programId = getProgramId();
   const poolPda = getPoolPda();
-  const server = http.createServer(async (req, res) => {
+  const path = (req) => (req.url || "").split("?")[0];
+  // Returns true when the request was for this endpoint (handled), false to let another router take it.
+  const handler = async (req, res) => {
+    if (path(req) !== "/cosign/borrow") return false;
     const origin = req.headers.origin && ALLOWED_ORIGINS.includes(req.headers.origin) ? req.headers.origin : (ALLOWED_ORIGINS[0] || undefined);
-    if (req.method === "OPTIONS") return json(res, 204, {}, origin);
-    if (req.method !== "POST" || req.url !== "/cosign/borrow") return json(res, 404, { ok: false, error: "not found" }, origin);
+    if (req.method === "OPTIONS") { json(res, 204, {}, origin); return true; }
+    if (req.method !== "POST") { json(res, 404, { ok: false, error: "not found" }, origin); return true; }
     try {
       const body = JSON.parse(await readBody(req));
       if (typeof body?.tx !== "string") throw new Error("tx (base64) required");
@@ -193,13 +197,25 @@ export function startCosignServer({ log = console } = {}) {
       if (parsed.kind === "legacy") parsed.tx.partialSign(authority); else parsed.tx.sign([authority]);
       const out = Buffer.from(parsed.tx.serialize({ requireAllSignatures: false, verifySignatures: false })).toString("base64");
       log.info(`[cosign] admitted borrow ${admitted.borrower} ${admitted.mint} tier ${admitted.tier} principal ${admitted.principalLamports}`);
-      return json(res, 200, { ok: true, tx: out, admitted }, origin);
+      json(res, 200, { ok: true, tx: out, admitted }, origin);
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
       log.warn(`[cosign] refused: ${msg}`);
       if (/not allowed|wrong pool|authority account|has not signed|other than the borrower/.test(msg)) notifyAdmin("cosign_refused_suspicious", { msg }).catch(() => {});
-      return json(res, 400, { ok: false, error: msg }, origin);
+      json(res, 400, { ok: false, error: msg }, origin);
     }
+    return true;
+  };
+  const healthPort = Number(process.env.HEALTH_PORT) || 3001;
+  if (PORT === healthPort) {
+    // One public port (cloud hosts): ride on the health server.
+    mountRoute(handler);
+    log.info(`[cosign] mounted on the health server port :${PORT} (POST /cosign/borrow)`);
+    return null;
+  }
+  const server = http.createServer(async (req, res) => {
+    if (await handler(req, res)) return;
+    json(res, 404, { ok: false, error: "not found" });
   });
   server.listen(PORT, () => log.info(`[cosign] listening on :${PORT}`));
   return server;

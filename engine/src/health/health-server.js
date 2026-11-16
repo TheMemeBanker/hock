@@ -40,9 +40,15 @@ async function buildStatus() {
   };
 }
 
+// Routes other modules mount on this port (a cloud host exposes one port per service; the co-sign
+// endpoint rides along when COSIGN_PORT equals HEALTH_PORT). Each handler returns true when it handled the request.
+const mounted = [];
+export function mountRoute(handler) { mounted.push(handler); }
+
 export function startHealthServer() {
   server = http.createServer(async (req, res) => {
     const path = (req.url || "").split("?")[0];
+    for (const h of mounted) { if (await h(req, res)) return; }
     if (path === "/health" || path === "/healthz" || path === "/") {
       const status = await buildStatus();
       res.writeHead(status.ok ? 200 : 503, { "Content-Type": "application/json" });
