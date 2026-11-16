@@ -47,7 +47,7 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
       <Header />
       <section style={{ padding: "clamp(40px,5vw,72px) 0", display: "grid", gap: 28 }}>
         <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-          {coin.imageUrl ? <img src={coin.imageUrl} alt="" width={72} height={72} style={{ borderRadius: 20, objectFit: "cover", border: "1px solid var(--line)" }} /> : <span aria-hidden className="art-ph" style={{ width: 72, height: 72, borderRadius: 20 }}><Mark size={34} tone="var(--line-2)" live="var(--line-2)" /></span>}
+          {coin.imageUrl ? <img src={coin.imageUrl} alt="" width={72} height={72} style={{ borderRadius: 20, objectFit: "cover", border: "1px solid var(--line)" }} /> : <span aria-hidden className="art-ph" style={{ width: 72, height: 72, borderRadius: 20 }}><Mark size={34} tone="var(--line-2)" hot="var(--line-2)" /></span>}
           <div style={{ display: "grid", gap: 6, minWidth: 0, flex: "1 1 320px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
               <h1 className="wm" style={{ margin: 0, fontSize: "clamp(36px,4.5vw,60px)", lineHeight: 1 }}>{coin.name}</h1>

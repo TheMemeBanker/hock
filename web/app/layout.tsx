@@ -14,7 +14,7 @@ export const metadata: Metadata = {
     icon: [
       { url: `${BASE}/brand/favicon-32.png`, sizes: "32x32", type: "image/png" },
       { url: `${BASE}/brand/favicon-64.png`, sizes: "64x64", type: "image/png" },
-      { url: `${BASE}/brand/hock-mark.svg`, type: "image/svg+xml" },
+      { url: `${BASE}/brand/hock-icon-small.svg`, type: "image/svg+xml" },
     ],
     apple: `${BASE}/brand/apple-touch-icon.png`,
   },
@@ -36,7 +36,7 @@ export const metadata: Metadata = {
   },
 };
 
-export const viewport: Viewport = { themeColor: "#080B10", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#0A0C10", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (

@@ -1,26 +1,26 @@
-/* HOCK design tokens, brand v2 (the node sign). One dark theme: near-black ground, fine grid, Volt accent. */
+/* HOCK design tokens, brand v3 (the aperture). One dark theme: graphite ground, ice type, thruster orange, ion-blue links. */
 :root {
-  --bg: #080B10;
-  --bg-grid: linear-gradient(rgba(255, 255, 255, .035) 1px, transparent 1px), linear-gradient(90deg, rgba(255, 255, 255, .035) 1px, transparent 1px);
-  --bg-glow: radial-gradient(900px 520px at 70% -10%, rgba(198, 255, 60, .10), transparent 60%);
-  --panel: #0D1218;
-  --panel-2: #121922;
-  --card: #0F151D;
-  --field: #0A0F15;
-  --line: #1C2631;
-  --line-2: #2A3744;
-  --ink: #EEF3F8;
-  --body: #B4BFCB;
-  --muted: #7B8794;
-  --accent: #C6FF3C;
-  --accent-2: #A9E62B;
-  --accent-ink: #0A0F05;
-  --accent-dim: rgba(198, 255, 60, .10);
-  --accent-line: rgba(198, 255, 60, .35);
-  --signal: #39D6FF;
-  --signal-dim: rgba(57, 214, 255, .10);
-  --warn: #FFB224;
-  --warn-dim: rgba(255, 178, 36, .12);
+  --bg: #0A0C10;
+  --bg-grid: linear-gradient(rgba(230, 238, 247, .04) 1px, transparent 1px), linear-gradient(90deg, rgba(230, 238, 247, .04) 1px, transparent 1px);
+  --bg-glow: radial-gradient(900px 560px at 78% -12%, rgba(255, 106, 31, .14), transparent 60%);
+  --panel: #0F1216;
+  --panel-2: #151A21;
+  --card: #11151B;
+  --field: #0B0E12;
+  --line: #1E242D;
+  --line-2: #2B333F;
+  --ink: #E6EEF7;
+  --body: #B5C0CE;
+  --muted: #8FA3BF;
+  --accent: #FF6A1F;
+  --accent-2: #FF8140;
+  --accent-ink: #0A0C10;
+  --accent-dim: rgba(255, 106, 31, .12);
+  --accent-line: rgba(255, 106, 31, .42);
+  --signal: #5AA9FF;
+  --signal-dim: rgba(90, 169, 255, .10);
+  --warn: #FFC14D;
+  --warn-dim: rgba(255, 193, 77, .12);
   --danger: #FF5470;
   --danger-dim: rgba(255, 84, 112, .12);
   --radius: 14px;
@@ -58,8 +58,8 @@ img { max-width: 100%; }
 /* buttons: squared-off, mono label, one accent */
 .btn { display: inline-flex; align-items: center; justify-content: center; gap: 10px; min-height: 50px; padding: 0 24px; border-radius: var(--radius-sm); font-family: var(--font-mono); font-weight: 600; font-size: 14px; letter-spacing: .02em; border: 1px solid transparent; cursor: pointer; transition: background .15s, color .15s, border-color .15s, box-shadow .15s; }
 .btn:disabled { opacity: .4; cursor: not-allowed; }
-.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: 0 0 0 0 rgba(198, 255, 60, 0), 0 12px 32px -16px rgba(198, 255, 60, .8); }
-.btn.primary:hover { background: var(--accent-2); border-color: var(--accent-2); color: var(--accent-ink); box-shadow: 0 0 0 4px var(--accent-dim), 0 12px 32px -16px rgba(198, 255, 60, .8); }
+.btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); box-shadow: 0 12px 32px -16px rgba(255, 106, 31, .85); }
+.btn.primary:hover { background: var(--accent-2); border-color: var(--accent-2); color: var(--accent-ink); box-shadow: 0 0 0 4px var(--accent-dim), 0 12px 32px -16px rgba(255, 106, 31, .85); }
 .btn.ink { background: var(--ink); color: var(--bg); border-color: var(--ink); }
 .btn.ink:hover { background: #fff; color: var(--bg); }
 .btn.line { background: transparent; border-color: var(--line-2); color: var(--ink); min-height: 44px; padding: 0 18px; font-size: 13px; }
@@ -75,7 +75,7 @@ img { max-width: 100%; }
 .pill { display: inline-flex; align-items: center; gap: 7px; padding: 4px 10px; border-radius: 6px; font-family: var(--font-mono); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; border: 1px solid transparent; }
 .pill::before { content: ""; width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .pill.ready { background: var(--accent-dim); color: var(--accent); border-color: var(--accent-line); }
-.pill.grading { background: var(--warn-dim); color: var(--warn); border-color: rgba(255, 178, 36, .35); }
+.pill.grading { background: var(--warn-dim); color: var(--warn); border-color: rgba(255, 193, 77, .35); }
 .pill.launched { background: var(--panel-2); color: var(--body); border-color: var(--line-2); }
 .pill.delisted { background: var(--danger-dim); color: var(--danger); border-color: rgba(255, 84, 112, .35); }
 .pill.ready::before { box-shadow: 0 0 0 3px var(--accent-dim); animation: pulse 1.8s ease-in-out infinite; }
@@ -193,3 +193,7 @@ td.mono { white-space: nowrap; }
   .board tbody tr:hover td { background: transparent; }
   .copy-addr code { font-size: 12px !important; }
 }
+
+/* ---- wordmark lockup: the aperture is the O ---- */
+.lockup { display: inline-flex; align-items: center; line-height: 1; letter-spacing: -.05em; }
+.lockup svg { margin: 0 .04em 0 .03em; transform: translateY(.02em); }

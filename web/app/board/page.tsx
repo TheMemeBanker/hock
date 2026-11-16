@@ -40,7 +40,7 @@ export default async function BoardPage() {
                 <tr key={r.mint}>
                   <td className="coin-cell">
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      {r.imageUrl ? <img src={r.imageUrl} alt="" width={36} height={36} style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} /> : <span aria-hidden className="art-ph" style={{ width: 36, height: 36 }}><Mark size={18} tone="var(--line-2)" live="var(--line-2)" /></span>}
+                      {r.imageUrl ? <img src={r.imageUrl} alt="" width={36} height={36} style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} /> : <span aria-hidden className="art-ph" style={{ width: 36, height: 36 }}><Mark size={18} tone="var(--line-2)" hot="var(--line-2)" /></span>}
                       <div style={{ minWidth: 0 }}>
                         <strong>{r.name}</strong> <span className="mono" style={{ color: "var(--muted)" }}>${r.symbol}</span>
                         <div className="mono" style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, overflowWrap: "anywhere" }}>{r.mint}</div>

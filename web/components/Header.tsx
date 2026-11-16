@@ -3,7 +3,7 @@
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
-import { Mark } from "./Mark";
+import { Lockup } from "./Mark";
 import { XLogo } from "./XLogo";
 
 const BaseWalletMultiButton = dynamic(
@@ -35,8 +35,7 @@ export function Header() {
   return (
     <header className="site-header">
       <Link href="/" aria-label="HOCK home" className="site-logo" style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--ink)" }}>
-        <Mark size={40} />
-        <span className="wm" style={{ fontSize: 26, letterSpacing: "-.04em" }}>HOCK</span>
+        <Lockup size={28} />
       </Link>
       <nav aria-label="Primary" className="site-nav">
         {NAV.map(([href, label]) => (

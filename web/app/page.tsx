@@ -33,7 +33,7 @@ export default async function Home() {
         <aside aria-label="How a ticket works" className="readout" style={{ flex: "0 1 440px", minWidth: 0 }}>
           <div className="readout-head">
             <span>Ticket · example</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--accent)" }}><Mark size={16} tone="var(--muted)" /> HOCK</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--accent)" }}><Mark size={16} tone="var(--muted)" small /> HOCK</span>
           </div>
           <div className="readout-row">
             <span className="lab">Collateral</span>
@@ -128,13 +128,13 @@ export default async function Home() {
             {pool.tiers.map((t) => (
               <div key={t.label} className="card" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 8 }}>
                 <span className="lab">{t.label}</span>
-                <span className="wm mono" style={{ fontSize: 30, color: "var(--accent)" }}>{t.apy ?? "—"}</span>
+                <span className="wm mono" style={{ fontSize: "clamp(22px,1.8vw,28px)", color: "var(--accent)", whiteSpace: "nowrap" }}>{t.apy ?? "—"}</span>
                 <small className="mono" style={{ fontSize: 12, color: "var(--muted)" }}>{t.fee} fee · {t.ltv} LTV</small>
               </div>
             ))}
             <div className="card corners" style={{ padding: 22, display: "flex", flexDirection: "column", gap: 8, borderColor: "var(--accent-line)" }}>
               <span className="lab" style={{ color: "var(--accent)" }}>Pool total</span>
-              <span className="wm mono" style={{ fontSize: 30 }}>{pool.totalSol ?? "—"}</span>
+              <span className="wm mono" style={{ fontSize: "clamp(22px,1.8vw,28px)", whiteSpace: "nowrap" }}>{pool.totalSol ?? "—"}</span>
               <Link href="/lend" className="mono" style={{ color: "var(--accent)", fontSize: 13, fontWeight: 600 }}>Supply SOL →</Link>
             </div>
           </div>

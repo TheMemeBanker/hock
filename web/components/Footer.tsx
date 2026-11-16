@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Mark } from "./Mark";
+import { Lockup } from "./Mark";
 import { XLogo } from "./XLogo";
 
 const X_URL = "https://x.com/HockFinance";
@@ -8,10 +8,7 @@ export function Footer() {
   const link = { color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 13 } as const;
   return (
     <footer style={{ padding: "36px 0 56px", borderTop: "1px solid var(--line)", display: "flex", flexWrap: "wrap", gap: "16px 26px", alignItems: "center" }}>
-      <span style={{ display: "inline-flex", alignItems: "center", gap: 10, color: "var(--ink)" }}>
-        <Mark size={22} />
-        <span className="wm" style={{ fontSize: 17 }}>HOCK</span>
-      </span>
+      <span style={{ color: "var(--ink)" }}><Lockup size={18} /></span>
       <Link href="/docs" style={link}>Docs</Link>
       <Link href="/docs/whitepaper" style={link}>Whitepaper</Link>
       <Link href="/docs/fees" style={link}>Fees</Link>
