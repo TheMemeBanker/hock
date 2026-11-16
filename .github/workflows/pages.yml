@@ -25,8 +25,8 @@ jobs:
       - name: Build static copy
         working-directory: web
         env:
-          # Project-page preview until hock.fun points here; then set NEXT_PUBLIC_BASE_PATH to "" and PAGES_CNAME to hock.fun.
-          NEXT_PUBLIC_BASE_PATH: ${{ vars.PAGES_BASE_PATH != '' && vars.PAGES_BASE_PATH || '/hock' }}
+          # With the PAGES_CNAME variable set (hock.fun) the site builds at the root; without it, as the project-page preview under /hock.
+          NEXT_PUBLIC_BASE_PATH: ${{ vars.PAGES_CNAME == '' && '/hock' || '' }}
           PAGES_CNAME: ${{ vars.PAGES_CNAME }}
         run: bash scripts/static-export.sh ./out-static
       - uses: actions/upload-pages-artifact@v3
