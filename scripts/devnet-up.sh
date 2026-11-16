@@ -34,7 +34,7 @@ POOL_PDA=$(cd program && SOLANA_RPC_URL="$RPC" PROGRAM_ID="$PROGRAM_ID" POOL_AUT
 echo "POOL_PDA=$POOL_PDA"
 
 # 4. env files (gitignored)
-DB=${DATABASE_URL:-postgres://hock:hock@127.0.0.1:54329/hock}
+DB=${DATABASE_URL:-postgres://hock:hock@127.0.0.1:5432/hock}
 cat > engine/.env <<ENV
 HOCK_CLUSTER=devnet
 ENGINE_INSTANCE_ID=engine-devnet
@@ -66,8 +66,8 @@ RPC_PROXY_UPSTREAM=$RPC
 SOLANA_RPC_URL=$RPC
 ENV
 
-# 5. fresh database for the new cluster (the local Docker one is throwaway)
-if [[ "$DB" == *127.0.0.1:54329* ]]; then docker exec hock-pg psql -U hock -d hock -qc "DROP SCHEMA public CASCADE; CREATE SCHEMA public;" && echo "local db reset"; fi
+# 5. fresh database for the new cluster (a local Postgres is throwaway; the engine re-applies its migrations on boot)
+if [[ "$DB" == *127.0.0.1:5432* ]]; then bash scripts/local-pg.sh up >/dev/null && bash scripts/local-pg.sh reset; fi
 
 # 6. restart engine and web
 pkill -f "node src/index.js" || true; pkill -f "next start" || true; sleep 1

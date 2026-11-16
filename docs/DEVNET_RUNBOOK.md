@@ -53,7 +53,16 @@ It creates the fee owner's wSOL account, sends `initialize_pool`, optionally dep
 
 ## 4. Database
 
-Create a Postgres database (local or a free Neon project named for HOCK, never shared with another product). `cd engine && npm install && DATABASE_URL=... npm run migrate`.
+A plain Postgres, no containers. Locally, Homebrew is enough (`bash scripts/local-pg.sh up` does all of this):
+
+```
+brew install postgresql@16
+brew services start postgresql@16
+/opt/homebrew/opt/postgresql@16/bin/psql postgres -c "CREATE ROLE hock LOGIN PASSWORD 'hock';" -c "CREATE DATABASE hock OWNER hock;"
+# DATABASE_URL=postgres://hock:hock@127.0.0.1:5432/hock
+```
+
+For a hosted devnet stack use a free Neon project named for HOCK, never shared with another product. Either way: `cd engine && npm install && DATABASE_URL=... npm run migrate` (the engine also re-applies pending migrations on boot).
 
 ## 5. Engine
 

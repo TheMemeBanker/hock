@@ -42,7 +42,7 @@ export default async function LendPage() {
               <Stat label="Deposits" value={fmtLamports(pool?.totalDeposits ?? null, 2)} />
               <Stat label="Borrowed" value={fmtLamports(pool?.totalBorrowed ?? null, 2)} />
               <Stat label="Utilisation" value={util === null ? DASH : fmtPct(util)} sub="borrowed / deposits" />
-              <Stat label="Shares" value={pool ? pool.totalShares.toLocaleString("en-US") : DASH} sub={sharePrice ? `${sharePrice.toFixed(6)} SOL per share` : undefined} />
+              <Stat label="Shares" value={pool ? new Intl.NumberFormat("en-US", { notation: "compact", maximumFractionDigits: 2 }).format(Number(pool.totalShares)) : DASH} sub={sharePrice ? `${sharePrice.toFixed(6)} SOL per share` : undefined} />
               <Stat label="Fees earned" value={fmtLamports(pool?.totalFeesEarned ?? null)} sub="lifetime, into the pool" />
               <Stat label="Loans issued" value={pool ? pool.totalLoansIssued.toString() : DASH} sub={pool ? `${pool.totalLiquidations.toString()} liquidations` : undefined} />
               <Stat label="Protocol share of fees" value={pool ? fmtPct(pool.protocolFeeBps) : DASH} sub="to the fee destination" />
@@ -71,7 +71,7 @@ export default async function LendPage() {
               <div style={{ display: "grid", gridTemplateColumns: "repeat(3,minmax(0,1fr))", gap: 12 }}>
                 {MEMECOIN_TIERS.map((t) => (
                   <div key={t.option}>
-                    <b className="mono" style={{ fontSize: 22, color: "var(--green)" }}>{pct(t.feeBps)}</b>
+                    <b className="mono" style={{ fontSize: 22, color: "var(--accent)" }}>{pct(t.feeBps)}</b>
                     <div style={{ fontSize: 13, color: "var(--body)" }}>{t.durationDays} d · {pct(t.ltvBps)} LTV</div>
                   </div>
                 ))}

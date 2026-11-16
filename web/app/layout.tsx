@@ -13,7 +13,7 @@ export const metadata: Metadata = {
     icon: [
       { url: "/brand/favicon-32.png", sizes: "32x32", type: "image/png" },
       { url: "/brand/favicon-64.png", sizes: "64x64", type: "image/png" },
-      { url: "/brand/hock-mark-ink-gold.svg", type: "image/svg+xml" },
+      { url: "/brand/hock-mark.svg", type: "image/svg+xml" },
     ],
     apple: "/brand/apple-touch-icon.png",
   },
@@ -25,10 +25,17 @@ export const metadata: Metadata = {
     url: SITE,
     images: [{ url: "/brand/hock-og-1200x630.png", width: 1200, height: 630 }],
   },
-  twitter: { card: "summary_large_image", title: "HOCK", description: "Launch it. Hock it." },
+  twitter: {
+    card: "summary_large_image",
+    site: "@HockFinance",
+    creator: "@HockFinance",
+    title: "HOCK — Launch it. Hock it.",
+    description: "Launch a coin, clear the gate, borrow SOL against it. Non-custodial, in-vault.",
+    images: ["/brand/hock-og-1200x630.png"],
+  },
 };
 
-export const viewport: Viewport = { themeColor: "#0FB36A", width: "device-width", initialScale: 1 };
+export const viewport: Viewport = { themeColor: "#080B10", width: "device-width", initialScale: 1 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
@@ -37,7 +44,7 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
         <link
-          href="https://fonts.googleapis.com/css2?family=Archivo+Black&family=Inter:wght@400;500;600;700;800&display=swap"
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap"
           rel="stylesheet"
         />
       </head>

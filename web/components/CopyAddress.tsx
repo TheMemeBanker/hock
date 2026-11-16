@@ -17,7 +17,7 @@ export function CopyAddress({ value, label, size = 13 }: { value: string; label?
   return (
     <span style={{ display: "inline-flex", alignItems: "center", gap: 10, flexWrap: "wrap", maxWidth: "100%" }}>
       {label && <span className="lab">{label}</span>}
-      <code className="mono" style={{ fontSize: size, color: "var(--body)", background: "#fff", padding: "6px 10px", borderRadius: 8, border: "1px solid var(--line)", overflowWrap: "anywhere" }}>{value}</code>
+      <code className="mono" style={{ fontSize: size, color: "var(--body)", background: "var(--field)", padding: "6px 10px", borderRadius: 8, border: "1px solid var(--line)", overflowWrap: "anywhere" }}>{value}</code>
       <button type="button" onClick={copy} className="btn line" style={{ minHeight: 32, padding: "0 12px", fontSize: 12 }} aria-label={`Copy ${label ?? "address"}`}>
         {copied ? "Copied" : "Copy"}
       </button>

@@ -1,14 +1,17 @@
-/** The HOCK mark: the pawnbroker's sign rebuilt as a launch gantry. Rail, three stems, three coins. */
-export function Mark({ size = 40, rail = "#141414", coin = "#FFB800", label = "HOCK" }: { size?: number; rail?: string; coin?: string; label?: string }) {
+/**
+ * The HOCK mark: the pawnbroker's three spheres redrawn as circuit nodes.
+ * Two ring nodes above, one live node below, joined by a Y of traces.
+ * `tone` is the ring and trace colour, `live` the filled node.
+ */
+export function Mark({ size = 40, tone = "currentColor", live = "var(--accent)", label = "HOCK" }: { size?: number; tone?: string; live?: string; label?: string }) {
   return (
-    <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={label}>
-      <rect x="10" y="8" width="80" height="12" rx="6" fill={rail} />
-      <rect x="27" y="18" width="6" height="14" fill={rail} />
-      <rect x="67" y="18" width="6" height="14" fill={rail} />
-      <rect x="47" y="18" width="6" height="48" fill={rail} />
-      <circle cx="30" cy="46" r="16" fill={coin} />
-      <circle cx="70" cy="46" r="16" fill={coin} />
-      <circle cx="50" cy="80" r="16" fill={coin} />
+    <svg viewBox="0 0 100 100" width={size} height={size} role="img" aria-label={label} style={{ display: "block", flexShrink: 0 }}>
+      <path d="M33.3 35.3 L50 52 L66.7 35.3 M50 52 L50 67" fill="none" stroke={tone} strokeWidth="5" strokeLinecap="round" strokeLinejoin="round" />
+      <circle cx="26" cy="28" r="8.5" fill="none" stroke={tone} strokeWidth="5" />
+      <circle cx="26" cy="28" r="4" fill={tone} />
+      <circle cx="74" cy="28" r="8.5" fill="none" stroke={tone} strokeWidth="5" />
+      <circle cx="74" cy="28" r="4" fill={tone} />
+      <circle cx="50" cy="78" r="11" fill={live} />
     </svg>
   );
 }

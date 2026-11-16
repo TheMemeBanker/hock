@@ -108,7 +108,7 @@ export function Tickets({ readyMints }: { readyMints: ReadyMint[] }) {
           <span style={{ fontSize: 14, color: "var(--muted)" }}>{loans === null ? "Reading chain…" : `${open.length} open · ${closed.length} closed`}</span>
           <button type="button" className="btn line" onClick={load} style={{ marginLeft: "auto", minHeight: 36, padding: "0 14px", fontSize: 13 }}>Refresh</button>
         </div>
-        {err && <span style={{ fontSize: 13, color: "#B3104F" }}>{err}</span>}
+        {err && <span style={{ fontSize: 13, color: "var(--danger)" }}>{err}</span>}
         {loans !== null && open.length === 0 && <div className="card" style={{ color: "var(--body)" }}>No open tickets for this wallet.</div>}
         {open.map((l) => <LoanCard key={l.address.toBase58()} loan={l} onChanged={load} />)}
         {closed.length > 0 && (
@@ -253,7 +253,7 @@ function LoanCard({ loan, onChanged }: { loan: LoanState; onChanged: () => void 
       <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
         <button type="button" className="btn ink" style={{ minHeight: 44, padding: "0 18px", fontSize: 14 }} disabled={!wallet.publicKey} onClick={() => { setMode("none"); a.prepare((p) => repayLoan(ctx(p), loan)); }}>Repay {fmtLamports(loan.repayAmount)}</button>
         {(["partial", "add", "extend", "arm"] as Mode[]).map((m) => (
-          <button key={m} type="button" className="btn line" style={{ minHeight: 44, padding: "0 16px", fontSize: 14, borderColor: mode === m ? "var(--green)" : undefined }} disabled={!wallet.publicKey} onClick={() => pick(m)}>
+          <button key={m} type="button" className="btn line" style={{ minHeight: 44, padding: "0 16px", fontSize: 14, borderColor: mode === m ? "var(--accent)" : undefined }} disabled={!wallet.publicKey} onClick={() => pick(m)}>
             {m === "partial" ? "Partial repay" : m === "add" ? "Add collateral" : m === "extend" ? "Extend" : armed ? "Re-arm limit-close" : "Arm limit-close"}
           </button>
         ))}
@@ -301,7 +301,7 @@ function LoanCard({ loan, onChanged }: { loan: LoanState; onChanged: () => void 
               <input className="mono" value={total} onChange={(e) => { setTotal(e.target.value); a.reset(); }} style={inputStyle} />
             </label>
           </div>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 12, background: "var(--gold-lite)", borderRadius: 12, padding: 14 }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(170px,1fr))", gap: 12, background: "var(--panel-2)", borderRadius: 12, padding: 14 }}>
             <Stat k="Trigger" v={fmtPriceLamports(triggerRaw ?? null)} />
             <Stat k="Floor now (TWAP minus 15%)" v={fmtPriceLamports(floor)} s="per token" />
             <Stat k="Min SOL out at trigger" v={fmtLamports(minOutAtTrigger)} s="for the first slice, program-enforced floor" />
@@ -314,7 +314,7 @@ function LoanCard({ loan, onChanged }: { loan: LoanState; onChanged: () => void 
   );
 }
 
-const inputStyle: React.CSSProperties = { fontSize: 16, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line)", fontFamily: "inherit", background: "#fff" };
+const inputStyle: React.CSSProperties = { fontSize: 16, padding: "10px 12px", borderRadius: 10, border: "1px solid var(--line)", fontFamily: "inherit", background: "var(--field)" };
 
 function Input({ value, onChange, unit }: { value: string; onChange: (v: string) => void; unit: string }) {
   return (

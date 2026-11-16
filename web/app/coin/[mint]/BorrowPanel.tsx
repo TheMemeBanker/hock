@@ -77,7 +77,7 @@ export function BorrowPanel({ mint, symbol, decimals }: Props) {
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12 }}>
         {MEMECOIN_TIERS.map((t) => (
-          <button key={t.option} type="button" onClick={() => { setTier(t); a.reset(); }} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", borderRadius: 16, padding: "14px 16px", border: `2px solid ${tier.option === t.option ? "var(--green)" : "var(--line)"}`, background: tier.option === t.option ? "var(--green-lite)" : "#fff" }}>
+          <button key={t.option} type="button" onClick={() => { setTier(t); a.reset(); }} style={{ textAlign: "left", cursor: "pointer", fontFamily: "inherit", borderRadius: 10, padding: "14px 16px", border: `1px solid ${tier.option === t.option ? "var(--accent)" : "var(--line)"}`, background: tier.option === t.option ? "var(--accent-dim)" : "var(--field)" }}>
             <span className="lab">{t.name}</span>
             <b className="mono" style={{ display: "block", fontSize: 20 }}>{pct(t.ltvBps)} LTV</b>
             <span style={{ fontSize: 13, color: "var(--body)" }}>{t.durationDays} days · {pct(t.feeBps)} fee</span>
@@ -94,7 +94,7 @@ export function BorrowPanel({ mint, symbol, decimals }: Props) {
         <span style={{ fontSize: 13, color: "var(--muted)" }}>Wallet balance: {balance === null ? DASH : fmtTokenAmount(balance, decimals, symbol)}</span>
       </label>
 
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 14, background: "var(--gold-lite)", borderRadius: 16, padding: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(150px,1fr))", gap: 14, background: "var(--panel-2)", borderRadius: 16, padding: 18 }}>
         <Cell k="Valuation price" v={fmtPriceLamports(feed?.valuationPrice ?? null)} s="lower of spot and TWAP" />
         <Cell k="Collateral value" v={fmtLamports(value)} />
         <Cell k="You receive" v={fmtLamports(preview?.net ?? null)} s="principal minus fee" />
@@ -105,7 +105,7 @@ export function BorrowPanel({ mint, symbol, decimals }: Props) {
         <Cell k="Conversion floor" v={fmtPriceLamports(floor)} s="TWAP minus 15% max slippage" />
       </div>
 
-      {readErr && <span style={{ fontSize: 13, color: "#B3104F" }}>Chain read failed: {readErr}</span>}
+      {readErr && <span style={{ fontSize: 13, color: "var(--danger)" }}>Chain read failed: {readErr}</span>}
       {whyNot && !readErr && <span style={{ fontSize: 13, color: "var(--muted)" }}>{whyNot}</span>}
 
       <ActionButtons
@@ -125,9 +125,9 @@ export function BorrowPanel({ mint, symbol, decimals }: Props) {
 function Cell({ k, v, s }: { k: string; v: string; s?: string }) {
   return (
     <div style={{ minWidth: 0 }}>
-      <span className="lab" style={{ fontSize: 10, color: "#5a4400" }}>{k}</span>
+      <span className="lab" style={{ fontSize: 10, color: "var(--muted)" }}>{k}</span>
       <b className="mono" style={{ display: "block", fontSize: 17, overflowWrap: "anywhere" }}>{v}</b>
-      {s && <span style={{ fontSize: 12, color: "#4a3a00" }}>{s}</span>}
+      {s && <span style={{ fontSize: 12, color: "var(--body)" }}>{s}</span>}
     </div>
   );
 }

@@ -140,7 +140,7 @@ export function LaunchForm() {
     }
   }
 
-  const field: React.CSSProperties = { width: "100%", border: "1.5px solid var(--line)", borderRadius: 12, background: "#F6F7F9", color: "var(--ink)", font: "inherit", fontSize: 16, padding: "13px 14px", outline: "none" };
+  const field: React.CSSProperties = { width: "100%", border: "1.5px solid var(--line)", borderRadius: 12, background: "var(--field)", color: "var(--ink)", font: "inherit", fontSize: 16, padding: "13px 14px", outline: "none" };
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "minmax(0,1fr) clamp(260px,24vw,380px)", gap: 28, alignItems: "start" }} className="launch-grid">
@@ -152,14 +152,14 @@ export function LaunchForm() {
         <label><span className="lab">Description <i style={{ fontStyle: "normal", textTransform: "none", letterSpacing: 0, opacity: .8 }}>{desc.length}/500</i></span><textarea style={{ ...field, resize: "vertical" }} maxLength={500} rows={2} value={desc} onChange={(e) => setDesc(e.target.value)} placeholder="One line people will actually read." /></label>
         <div>
           <span className="lab">Art <i style={{ fontStyle: "normal", textTransform: "none", letterSpacing: 0, opacity: .8 }}>square works best · png, jpg, gif, webp · up to 4 MB</i></span>
-          <label style={{ display: "grid", placeItems: "center", minHeight: 96, border: `1.5px dashed ${image ? "var(--green)" : "var(--line)"}`, borderRadius: 12, background: "#F6F7F9", color: "var(--muted)", fontSize: 14, cursor: "pointer", padding: 14, textAlign: "center" }}>
+          <label style={{ display: "grid", placeItems: "center", minHeight: 96, border: `1.5px dashed ${image ? "var(--accent)" : "var(--line)"}`, borderRadius: 12, background: "var(--field)", color: "var(--muted)", fontSize: 14, cursor: "pointer", padding: 14, textAlign: "center" }}>
             <input ref={fileRef} type="file" accept="image/png,image/jpeg,image/gif,image/webp" hidden onChange={(e) => { const f = e.target.files?.[0] ?? null; if (f && f.size > 4 * 1024 * 1024) { setErr("Art must be 4 MB or smaller."); return; } setErr(null); setImage(f); }} />
             {image ? `${image.name} (${(image.size / 1024).toFixed(0)} KB)` : "Drop an image or click to choose"}
           </label>
         </div>
 
         {TEST_CLUSTER && (
-          <p style={{ margin: 0, fontSize: 13, color: "var(--body)", lineHeight: 1.6, borderLeft: "3px solid var(--gold)", paddingLeft: 12 }}>
+          <p style={{ margin: 0, fontSize: 13, color: "var(--body)", lineHeight: 1.6, borderLeft: "3px solid var(--warn)", paddingLeft: 12 }}>
             <strong>Test cluster ({CLUSTER}).</strong> Launching here creates a Token-2022 test mint with on-chain metadata, mints 1,000,000,000 to your wallet and revokes the mint authority. Art and metadata are stored by this site (mainnet uses Arweave). There is no bonding curve and no PumpPortal on this cluster; the gate grades it against synthetic market rows the engine operator sets.
           </p>
         )}
@@ -190,20 +190,20 @@ export function LaunchForm() {
         </label>
 
         <div style={{ display: "flex", alignItems: "center", gap: 16, flexWrap: "wrap" }}>
-          <button type="submit" className="btn green" disabled={!canLaunch}>{busy ? "Working…" : dry ? "Dry run" : "Launch it"}</button>
-          <div aria-live="polite" style={{ fontSize: 14, color: err ? "#B3104F" : "var(--muted)", minWidth: 0 }}>{err ?? status}</div>
+          <button type="submit" className="btn primary" disabled={!canLaunch}>{busy ? "Working…" : dry ? "Dry run" : "Launch it"}</button>
+          <div aria-live="polite" style={{ fontSize: 14, color: err ? "var(--danger)" : "var(--muted)", minWidth: 0 }}>{err ?? status}</div>
         </div>
 
         {(busy || done.size > 0) && (
           <ol style={{ listStyle: "none", margin: 0, padding: 0, display: "grid", gridTemplateColumns: "repeat(4,minmax(0,1fr))", gap: 8 }}>
             {STEPS.map((s) => (
-              <li key={s.id} style={{ fontSize: 12, paddingTop: 8, borderTop: `3px solid ${done.has(s.id) ? "var(--green)" : step === s.id ? "var(--gold)" : "var(--line)"}`, color: done.has(s.id) ? "var(--green-2)" : step === s.id ? "var(--ink)" : "var(--muted)", fontWeight: 700 }}>{s.label}</li>
+              <li key={s.id} style={{ fontSize: 12, paddingTop: 8, borderTop: `3px solid ${done.has(s.id) ? "var(--accent)" : step === s.id ? "var(--warn)" : "var(--line)"}`, color: done.has(s.id) ? "var(--accent-2)" : step === s.id ? "var(--ink)" : "var(--muted)", fontWeight: 700 }}>{s.label}</li>
             ))}
           </ol>
         )}
 
         {result && (
-          <div style={{ borderRadius: 14, background: "var(--green-lite)", padding: "14px 16px", fontSize: 14, lineHeight: 1.7 }}>
+          <div style={{ borderRadius: 14, background: "var(--accent-dim)", padding: "14px 16px", fontSize: 14, lineHeight: 1.7 }}>
             <div><strong>{result.dry ? "Dry run complete." : "Live."}</strong> Mint <code className="mono" style={{ overflowWrap: "anywhere" }}>{result.mint}</code></div>
             {result.sig && <div>Transaction <a href={explorerUrl("tx", result.sig)} target="_blank" rel="noopener noreferrer">{result.sig.slice(0, 8)}…{result.sig.slice(-8)}</a></div>}
             {!result.dry && <div><Link href={`/coin/${result.mint}`} style={{ fontWeight: 800 }}>Open your coin's page</Link> to watch the gate grade it.</div>}
@@ -213,13 +213,13 @@ export function LaunchForm() {
 
       <aside aria-label="Preview" style={{ position: "sticky", top: 16 }}>
         <div style={{ background: "var(--card)", border: "1px solid var(--line)", borderRadius: 20, overflow: "hidden", boxShadow: "var(--shadow-card)" }}>
-          <div style={{ aspectRatio: "1/1", background: "#F0F2F5", display: "grid", placeItems: "center", overflow: "hidden" }}>
+          <div style={{ aspectRatio: "1/1", background: "var(--panel-2)", display: "grid", placeItems: "center", overflow: "hidden" }}>
             {preview ? <img src={preview} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : <span style={{ color: "var(--muted)", fontSize: 13 }}>your art</span>}
           </div>
           <div style={{ padding: "14px 16px 16px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 8, flexWrap: "wrap" }}>
               <b style={{ fontSize: 16, overflowWrap: "anywhere" }}>{name || "Your coin"}</b>
-              <span style={{ color: "var(--green-2)", fontWeight: 800, fontSize: 13 }}>${symbol.toUpperCase() || "TICKER"}</span>
+              <span style={{ color: "var(--accent-2)", fontWeight: 800, fontSize: 13 }}>${symbol.toUpperCase() || "TICKER"}</span>
             </div>
             <p style={{ margin: "6px 0 0", fontSize: 13, color: "var(--muted)", lineHeight: 1.5, overflowWrap: "anywhere" }}>{desc || "The description shows here."}</p>
             <div style={{ display: "flex", justifyContent: "space-between", gap: 10, marginTop: 12, fontSize: 11, color: "var(--muted)" }}>

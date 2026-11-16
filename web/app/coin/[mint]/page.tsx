@@ -69,7 +69,7 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
               {coin.checks.map((c) => (
                 <li key={c.key} style={{ display: "flex", gap: 12, alignItems: "baseline", justifyContent: "space-between", borderBottom: "1px solid var(--line)", paddingBottom: 8 }}>
                   <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
-                    <i aria-hidden style={{ width: 10, height: 10, borderRadius: "50%", background: c.ok ? "var(--green)" : "var(--pink)", flexShrink: 0 }} />
+                    <i aria-hidden style={{ width: 10, height: 10, borderRadius: "50%", background: c.ok ? "var(--accent)" : "var(--danger)", flexShrink: 0 }} />
                     <span>{c.label}</span>
                   </span>
                   <span className="mono" style={{ fontSize: 13, color: "var(--muted)" }}>{c.detail ?? DASH}</span>
@@ -90,7 +90,7 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
               <Stat label="Feed age" value={fmtAge(feed?.ageSeconds)} sub={feed ? (feed.fresh ? "within 120 s" : "stale") : "no feed"} />
               <Stat label="Samples" value={feed ? String(feed.count) : DASH} sub="of 32 ring slots" />
             </div>
-            <p style={{ margin: 0, fontSize: 14, color: feed?.borrowable ? "var(--green-2)" : "var(--body)" }}>
+            <p style={{ margin: 0, fontSize: 14, color: feed?.borrowable ? "var(--accent-2)" : "var(--body)" }}>
               {feed ? feed.reason : !PROGRAM_ID || !POOL_PDA ? "Program id or pool is not configured on this deployment." : "No price feed has been initialised for this mint."}
             </p>
             {feed && <CopyAddress value={feed.address.toBase58()} label="Feed" size={11} />}

@@ -2,7 +2,9 @@
 
 import Link from "next/link";
 import dynamic from "next/dynamic";
+import { usePathname } from "next/navigation";
 import { Mark } from "./Mark";
+import { XLogo } from "./XLogo";
 
 const BaseWalletMultiButton = dynamic(
   () => import("@solana/wallet-adapter-react-ui").then((m) => m.BaseWalletMultiButton),
@@ -18,21 +20,35 @@ const WALLET_LABELS = {
   disconnect: "Disconnect",
 } as const;
 
+const NAV = [
+  ["/launch", "Launch"],
+  ["/board", "Board"],
+  ["/borrow", "Dashboard"],
+  ["/lend", "Lend"],
+  ["/docs", "Docs"],
+] as const;
+
+export const X_URL = "https://x.com/HockFinance";
+
 export function Header() {
+  const path = usePathname() ?? "/";
   return (
     <header className="site-header">
-      <Link href="/" aria-label="HOCK home" className="site-logo" style={{ display: "flex", alignItems: "center", gap: 14, color: "var(--ink)" }}>
-        <Mark size={46} />
-        <span className="wm" style={{ fontSize: 30 }}>HOCK</span>
+      <Link href="/" aria-label="HOCK home" className="site-logo" style={{ display: "flex", alignItems: "center", gap: 12, color: "var(--ink)" }}>
+        <Mark size={40} />
+        <span className="wm" style={{ fontSize: 26, letterSpacing: "-.04em" }}>HOCK</span>
       </Link>
       <nav aria-label="Primary" className="site-nav">
-        <Link href="/launch">Launch</Link>
-        <Link href="/board">Board</Link>
-        <Link href="/borrow">Dashboard</Link>
-        <Link href="/lend">Lend</Link>
-        <Link href="/docs">Docs</Link>
+        {NAV.map(([href, label]) => (
+          <Link key={href} href={href} className={path === href || path.startsWith(href + "/") || (href === "/borrow" && path === "/dashboard") ? "current" : undefined}>
+            {label}
+          </Link>
+        ))}
       </nav>
-      <div className="site-wallet"><BaseWalletMultiButton className="btn line" labels={WALLET_LABELS} /></div>
+      <div className="site-wallet">
+        <a className="site-x" href={X_URL} target="_blank" rel="noopener noreferrer" aria-label="HOCK on X"><XLogo size={16} /></a>
+        <BaseWalletMultiButton className="btn line" labels={WALLET_LABELS} />
+      </div>
     </header>
   );
 }
