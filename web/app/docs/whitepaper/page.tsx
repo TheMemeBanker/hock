@@ -20,7 +20,7 @@ export default function Whitepaper() {
       <ol style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 6 }}>
         <li>Launched on HOCK, or imported by address later through the same gate.</li>
         <li>On the board as launched; not collateral.</li>
-        <li>The gate grades it every cycle: pooled liquidity, 24 h and 1 h volume, routability at loan size, top-holder concentration, Token-2022 extension audit, impersonation check.</li>
+        <li>The gate grades it every cycle. Borrowing opens when market cap holds $50,000; beneath that line it also checks pooled liquidity, 24 h and 1 h volume, routability at loan size, top-holder concentration, Token-2022 extension audit, impersonation check.</li>
         <li>Collateral ready after two consecutive full passes. The price feed is initialised and attested.</li>
         <li>Holders borrow against it. Loans run to term; limit-closes fire if armed and triggered.</li>
         <li>If any check fails: delisted. No new loans; existing loans run out; the reason is shown.</li>

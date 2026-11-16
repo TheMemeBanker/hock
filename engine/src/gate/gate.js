@@ -2,7 +2,8 @@
  * Gate loop: grades every HOCK-launched mint each GATE_INTERVAL_SECONDS.
  *
  * Checks
- *   liquidity_ok   sum(liquidity.usd) over DexScreener pairs >= GATE_MIN_LIQUIDITY_USD
+ *   market_cap_ok  the headline rule: best-pair marketCap (fdv fallback) >= GATE_MIN_MARKET_CAP_USD ($50k)
+ *   liquidity_ok   sum(liquidity.usd) over DexScreener pairs >= GATE_MIN_LIQUIDITY_USD  (sellability floor)
  *   velocity_ok    volume.h24 >= GATE_MIN_VOLUME_24H_USD and volume.h1 >= GATE_MIN_VOLUME_1H_USD
  *   routability_ok Jupiter quote selling GATE_REFERENCE_SELL_SOL worth of the token
  *                  succeeds with priceImpactPct*1e4 <= GATE_MAX_IMPACT_BPS
@@ -38,11 +39,15 @@ import { connection, mintTokenProgram } from "../chain/program.js";
 import { syntheticMarket } from "../synthetic/synthetic.js";
 
 const INTERVAL_MS = (Number(process.env.GATE_INTERVAL_SECONDS) || 60) * 1000;
-const MIN_LIQ = Number(process.env.GATE_MIN_LIQUIDITY_USD) || 15_000;
-const MIN_V24 = Number(process.env.GATE_MIN_VOLUME_24H_USD) || 25_000;
-const MIN_V1 = Number(process.env.GATE_MIN_VOLUME_1H_USD) || 1_000;
-const REF_SELL_SOL = Number(process.env.GATE_REFERENCE_SELL_SOL) || 1;
-const MAX_IMPACT_BPS = Number(process.env.GATE_MAX_IMPACT_BPS) || 500;
+// Headline rule (what the product promises): market cap >= $50k.
+const MIN_MCAP = Number(process.env.GATE_MIN_MARKET_CAP_USD) || 50_000;
+// Sellability floor underneath it. A $50k pump.fun coin is still on its bonding curve, so these are
+// sized for a curve, not a graduated pool; they exist to refuse a coin that cannot actually be sold.
+const MIN_LIQ = Number(process.env.GATE_MIN_LIQUIDITY_USD) || 2_500;
+const MIN_V24 = Number(process.env.GATE_MIN_VOLUME_24H_USD) || 5_000;
+const MIN_V1 = Number(process.env.GATE_MIN_VOLUME_1H_USD) || 250;
+const REF_SELL_SOL = Number(process.env.GATE_REFERENCE_SELL_SOL) || 0.5;
+const MAX_IMPACT_BPS = Number(process.env.GATE_MAX_IMPACT_BPS) || 800;
 const MAX_TOP10_PCT = Number(process.env.GATE_MAX_TOP10_PCT) || 40;
 const PASSES_TO_PROMOTE = Number(process.env.GATE_PASSES_TO_PROMOTE) || 2;
 const EXCLUDED = new Set((process.env.GATE_EXCLUDED_HOLDERS || "").split(",").map((s) => s.trim()).filter(Boolean));
@@ -58,17 +63,18 @@ async function dexPairs(mint) {
 }
 
 export function gradeMarket(pairs) {
-  let liq = 0, v24 = 0, v1 = 0, priceNative = 0, bestLiq = -1;
+  let liq = 0, v24 = 0, v1 = 0, priceNative = 0, bestLiq = -1, mcap = 0;
   const pairAddresses = [];
   for (const p of pairs) {
     liq += Number(p?.liquidity?.usd ?? 0);
+    mcap = Math.max(mcap, Number(p?.marketCap ?? p?.fdv ?? 0));
     v24 += Number(p?.volume?.h24 ?? 0);
     v1 += Number(p?.volume?.h1 ?? 0);
     if (p?.pairAddress) pairAddresses.push(p.pairAddress);
     const l = Number(p?.liquidity?.usd ?? 0);
     if (l > bestLiq && parseFloat(p?.priceNative ?? 0) > 0) { bestLiq = l; priceNative = parseFloat(p.priceNative); }
   }
-  return { liquidity_usd: liq, volume_24h_usd: v24, volume_1h_usd: v1, price_sol_per_whole: priceNative, pairAddresses };
+  return { market_cap_usd: mcap, liquidity_usd: liq, volume_24h_usd: v24, volume_1h_usd: v1, price_sol_per_whole: priceNative, pairAddresses };
 }
 
 async function checkRoutability(mint, decimals, priceSolPerWhole) {
@@ -131,7 +137,7 @@ export async function gradeMint(conn, mintRow) {
   const synth = await syntheticMarket(mint);
   const pairs = synth ? [] : await dexPairs(mint).catch(() => []);
   const market = synth
-    ? { liquidity_usd: synth.liquidityUsd, volume_24h_usd: synth.volume24hUsd, volume_1h_usd: synth.volume1hUsd, price_sol_per_whole: Number(synth.priceLamports) / 1e9, pairAddresses: [] }
+    ? { market_cap_usd: synth.marketCapUsd, liquidity_usd: synth.liquidityUsd, volume_24h_usd: synth.volume24hUsd, volume_1h_usd: synth.volume1hUsd, price_sol_per_whole: Number(synth.priceLamports) / 1e9, pairAddresses: [] }
     : gradeMarket(pairs);
   const [route, holders] = await Promise.all([
     synth
@@ -145,11 +151,14 @@ export async function gradeMint(conn, mintRow) {
   ]);
   const ext = auditExtensions(mintInfo, tokenProgram);
   const checks = {
+    market_cap_ok: market.market_cap_usd >= MIN_MCAP,
     liquidity_ok: market.liquidity_usd >= MIN_LIQ,
     velocity_ok: market.volume_24h_usd >= MIN_V24 && market.volume_1h_usd >= MIN_V1,
     routability_ok: route.ok,
     holders_ok: holders.ok,
     extensions_ok: ext.ok,
+    market_cap_usd: market.market_cap_usd,
+    min_market_cap_usd: MIN_MCAP,
     liquidity_usd: market.liquidity_usd,
     volume_24h_usd: market.volume_24h_usd,
     volume_1h_usd: market.volume_1h_usd,
@@ -159,9 +168,10 @@ export async function gradeMint(conn, mintRow) {
     extensions: ext.extensions,
     pairs: pairs.length,
     synthetic: !!synth,
-    thresholds: { MIN_LIQ, MIN_V24, MIN_V1, REF_SELL_SOL, MAX_IMPACT_BPS, MAX_TOP10_PCT },
+    thresholds: { MIN_MCAP, MIN_LIQ, MIN_V24, MIN_V1, REF_SELL_SOL, MAX_IMPACT_BPS, MAX_TOP10_PCT },
   };
   const failures = [];
+  if (!checks.market_cap_ok) failures.push(`market cap ${Math.round(market.market_cap_usd)} < ${MIN_MCAP}`);
   if (!checks.liquidity_ok) failures.push(`liquidity ${Math.round(market.liquidity_usd)} < ${MIN_LIQ}`);
   if (!checks.velocity_ok) failures.push(`volume 24h ${Math.round(market.volume_24h_usd)} / 1h ${Math.round(market.volume_1h_usd)} below ${MIN_V24}/${MIN_V1}`);
   if (!checks.routability_ok) failures.push(`routability: ${route.detail}`);
@@ -185,11 +195,13 @@ async function persist(mintRow, state, grade, verdict) {
   const c = grade.checks;
   await query(
     `INSERT INTO gate_state (mint, verdict, liquidity_ok, velocity_ok, routability_ok, holders_ok, extensions_ok, consecutive_passes,
-        liquidity_usd, volume_24h_usd, volume_1h_usd, route_quote_sol, top10_holder_pct, reason, graded_at, promoted_at, delisted_at, updated_at)
+        liquidity_usd, volume_24h_usd, volume_1h_usd, route_quote_sol, top10_holder_pct, reason, graded_at, promoted_at, delisted_at, updated_at,
+        market_cap_ok, market_cap_usd, min_market_cap_usd)
      VALUES ($1,$2::gate_verdict,$3,$4,$5,$6,$7,$8,$9,$10,$11,$12,$13,$14,now(),
         CASE WHEN $2::text = 'collateral_ready' AND $15::text <> 'collateral_ready' THEN now() ELSE NULL END,
-        CASE WHEN $2::text = 'delisted' THEN now() ELSE NULL END, now())
+        CASE WHEN $2::text = 'delisted' THEN now() ELSE NULL END, now(), $16, $17, $18)
      ON CONFLICT (mint) DO UPDATE SET
+        market_cap_ok = EXCLUDED.market_cap_ok, market_cap_usd = EXCLUDED.market_cap_usd, min_market_cap_usd = EXCLUDED.min_market_cap_usd,
         verdict = EXCLUDED.verdict, liquidity_ok = EXCLUDED.liquidity_ok, velocity_ok = EXCLUDED.velocity_ok,
         routability_ok = EXCLUDED.routability_ok, holders_ok = EXCLUDED.holders_ok, extensions_ok = EXCLUDED.extensions_ok,
         consecutive_passes = EXCLUDED.consecutive_passes, liquidity_usd = EXCLUDED.liquidity_usd,
@@ -200,7 +212,8 @@ async function persist(mintRow, state, grade, verdict) {
         delisted_at = CASE WHEN EXCLUDED.verdict = 'delisted' AND gate_state.verdict <> 'delisted' THEN now() ELSE gate_state.delisted_at END,
         updated_at = now()`,
     [mintRow.mint, verdict.verdict, c.liquidity_ok, c.velocity_ok, c.routability_ok, c.holders_ok, c.extensions_ok, verdict.consecutive,
-      c.liquidity_usd, c.volume_24h_usd, c.volume_1h_usd, c.route_quote_sol, c.top10_holder_pct, grade.reason, state.verdict],
+      c.liquidity_usd, c.volume_24h_usd, c.volume_1h_usd, c.route_quote_sol, c.top10_holder_pct, grade.reason, state.verdict,
+      c.market_cap_ok, c.market_cap_usd, c.min_market_cap_usd],
   );
   await query(`INSERT INTO gate_passes (mint, verdict, checks) VALUES ($1,$2,$3::jsonb)`, [mintRow.mint, verdict.verdict, JSON.stringify({ ...c, pass: grade.pass, reason: grade.reason })]);
 }
@@ -245,7 +258,7 @@ export function startGate() {
   };
   setTimeout(tick, 2_000 + Math.random() * 5_000);
   _timer = setInterval(tick, INTERVAL_MS);
-  console.log(`[gate] started; every ${INTERVAL_MS / 1000}s; thresholds liq>=${MIN_LIQ} v24>=${MIN_V24} v1>=${MIN_V1} impact<=${MAX_IMPACT_BPS}bps top10<=${MAX_TOP10_PCT}%`);
+  console.log(`[gate] started; every ${INTERVAL_MS / 1000}s; thresholds mcap>=${MIN_MCAP} liq>=${MIN_LIQ} v24>=${MIN_V24} v1>=${MIN_V1} impact<=${MAX_IMPACT_BPS}bps top10<=${MAX_TOP10_PCT}%`);
 }
 
 export function stopGate() {

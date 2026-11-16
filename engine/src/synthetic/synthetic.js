@@ -32,6 +32,7 @@ export async function syntheticMarket(mint) {
   return {
     mint: r.mint,
     priceLamports: BigInt(r.price_lamports_per_whole),
+    marketCapUsd: Number(r.market_cap_usd ?? 0),
     liquidityUsd: Number(r.liquidity_usd),
     volume24hUsd: Number(r.volume_24h_usd),
     volume1hUsd: Number(r.volume_1h_usd),

@@ -103,7 +103,7 @@ Postgres. The chain is the source of truth for loans and pools; the DB indexes i
 
 1. Launched on HOCK (or imported by address later, same gate).
 2. `launched` — on the board, not collateral.
-3. Gate grades it every cycle; progress shown live.
+3. Gate grades it every cycle; progress shown live. **The headline rule is one number:** market cap at or above `GATE_MIN_MARKET_CAP_USD` (default $50,000), read from the coin's best pair (`marketCap`, `fdv` fallback) or, before graduation, its bonding curve. Underneath that line sits the sellability floor (liquidity, velocity, routability at loan size, holder concentration, Token-2022 extensions), sized for a bonding-curve coin and there only to refuse a coin the vault could not sell.
 4. `collateral_ready` after two consecutive full passes. Price feed initialised and attested.
 5. Holders borrow against it. Loans run to term; limit-closes fire if armed and triggered.
 6. If any check fails, `delisted`: no new loans; existing loans run out; the reason is shown.

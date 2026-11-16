@@ -17,7 +17,7 @@ export default async function Home() {
           <span className="kicker">Launchpad with built-in lending</span>
           <h1 className="wm hero-h1">Launch it.<br /><em>Hock it.</em></h1>
           <p style={{ margin: 0, fontSize: "clamp(18px,1.5vw,22px)", maxWidth: "54ch", color: "var(--body)" }}>
-            Every coin launched on HOCK is born collateral. Launch in one signature, borrow SOL against your coin once it clears the gate, and never hand over your keys.
+            Every coin launched on HOCK is born collateral. Launch in one signature, and the moment your coin holds $50k market cap you can borrow SOL against it. Your keys never leave your wallet.
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Link className="btn primary" href="/launch">Launch a coin</Link>
@@ -38,6 +38,10 @@ export default async function Home() {
           <div className="readout-row">
             <span className="lab">Collateral</span>
             <span className="mono" style={{ fontSize: 15, color: "var(--ink)" }}>your coin, in the vault</span>
+          </div>
+          <div className="readout-row">
+            <span className="lab">Unlocks at</span>
+            <span className="mono" style={{ fontSize: 15, color: "var(--accent)" }}>$50,000 market cap</span>
           </div>
           <div className="readout-row">
             <span className="lab">Borrow</span>
@@ -68,7 +72,7 @@ export default async function Home() {
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(300px,1fr))", gap: 16 }}>
           {[
             { n: "01", t: "Launch", p: "Name it, drop the art, sign once. Metadata is stored permanently on Arweave and the coin goes live on a bonding curve. Creating is free; an initial buy pays only the router fee.", l: ["Transaction simulated before you sign", "Mint keypair generated in your browser", "Vanity suffix optional"] },
-            { n: "02", t: "Clear the gate", p: "A coin becomes collateral only when it proves it can be sold: pooled liquidity, trading velocity, routability on the aggregators, holder concentration and a Token-2022 extension audit. The gate fails closed.", l: ["Checked continuously, not once", "Delisted the moment it stops clearing", "Progress shown on the coin's page"] },
+            { n: "02", t: "Hit $50k market cap", p: "The line is $50,000. When your coin holds it, borrowing opens. Under that one rule a quiet floor keeps the vault honest: the coin has to be sellable, with real volume, a working route on the aggregators, spread-out holders and clean Token-2022 extensions.", l: ["One number to watch, shown live on the coin's page", "Checked continuously, not once", "Closes the moment the coin drops below the line"] },
             { n: "03", t: "Hock it", p: "Lock the coin in the vault and borrow SOL from the pool at a fixed term. Repay to unlock. Set a limit-close so the vault exits for you at your price, and the lender is always made whole first.", l: ["Memecoin tiers: 30 / 25 / 20% LTV at 2 / 3 / 7 days", "Partial repay, add collateral, extend", "Every exit happens inside the vault"] },
           ].map((s, i) => (
             <article key={s.n} className={`card${i === 2 ? " corners" : ""}`} style={{ display: "flex", flexDirection: "column", gap: 14 }}>

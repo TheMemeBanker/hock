@@ -63,7 +63,17 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
           <article className="card" style={{ display: "grid", gap: 16 }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 12, flexWrap: "wrap" }}>
               <h2 style={{ margin: 0, fontSize: 22 }}>The gate</h2>
-              <span style={{ fontSize: 14, color: "var(--muted)" }}>{passes} of 5 passing · {coin.consecutivePasses} consecutive full passes (2 needed)</span>
+              <span style={{ fontSize: 14, color: "var(--muted)" }}>{passes} of 6 passing · {coin.consecutivePasses} consecutive full passes (2 needed)</span>
+            </div>
+                        <div className="mc-line" aria-label="Market cap against the borrow line">
+              <div className="mc-line-head">
+                <span className="lab">Market cap</span>
+                <span className="mono" style={{ fontSize: 13, color: coin.checks[0]?.ok ? "var(--accent)" : "var(--ink)" }}>
+                  {coin.marketCapUsd != null ? `$${Math.round(coin.marketCapUsd).toLocaleString("en-US")}` : "—"} <span style={{ color: "var(--muted)" }}>/ ${coin.minMarketCapUsd.toLocaleString("en-US")}</span>
+                </span>
+              </div>
+              <div className="mc-line-track"><i style={{ width: `${Math.max(0, Math.min(100, ((coin.marketCapUsd ?? 0) / coin.minMarketCapUsd) * 100))}%` }} /></div>
+              <span className="mono" style={{ fontSize: 11, color: "var(--muted)", letterSpacing: ".06em" }}>{coin.checks[0]?.ok ? "ABOVE THE LINE" : `${Math.round(((coin.marketCapUsd ?? 0) / coin.minMarketCapUsd) * 100)}% OF THE WAY TO BORROWING`}</span>
             </div>
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
               {coin.checks.map((c) => (
@@ -77,7 +87,7 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
               ))}
             </ul>
             <p style={{ margin: 0, fontSize: 14, color: "var(--body)" }}>
-              {coin.reason ? <><strong>Reason:</strong> {coin.reason}</> : coin.verdict === "collateral_ready" ? "All five checks passed twice in a row. Borrowing is open until any check fails." : "Graded continuously by the engine. Two consecutive full passes make this coin collateral."}
+              {coin.reason ? <><strong>Reason:</strong> {coin.reason}</> : coin.verdict === "collateral_ready" ? "Market cap is above the line and every floor check passed twice in a row. Borrowing is open until any check fails." : "Graded continuously by the engine. Two consecutive full passes make this coin collateral."}
               {coin.gradedAt && <span style={{ color: "var(--muted)" }}> Last graded {ago(new Date(coin.gradedAt))} ago.</span>}
             </p>
           </article>

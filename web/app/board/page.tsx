@@ -23,8 +23,7 @@ export default async function BoardPage() {
           </span>
         </div>
         <p style={{ margin: "0 0 28px", maxWidth: "70ch", color: "var(--body)" }}>
-          Every coin launched on HOCK, in launch order. The gate grades five things continuously: pooled liquidity, trading velocity, routability at loan size, holder concentration and the token program's extensions. Five passes twice in a row makes a coin collateral; one failure delists it for new loans.
-        </p>
+          Every coin launched on HOCK, in launch order. The borrow line is $50,000 of market cap, read live. Under it the gate keeps a sellability floor: pooled liquidity, trading velocity, routability at loan size, holder concentration and a Token-2022 extension audit. </p>
         <div style={{ overflowX: "auto", background: "var(--card)", border: "1px solid var(--line)", borderRadius: 24, boxShadow: "var(--shadow-card)" }}>
           <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 860 }}>
             <thead>
@@ -48,7 +47,7 @@ export default async function BoardPage() {
                     </div>
                   </td>
                   <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.age}</td>
-                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{fmtUsd(markets.get(r.mint)?.marketCapUsd)}</td>
+                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{markets.get(r.mint)?.marketCapUsd != null ? fmtUsd(markets.get(r.mint)?.marketCapUsd) : (r.marketCap ?? "—")}</td>
                   <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.liquidity ?? fmtUsd(markets.get(r.mint)?.liquidityUsd)}</td>
                   <td style={{ padding: 18, borderBottom: "1px solid var(--line)" }}><span className={`pill ${r.verdictClass}`}>{r.verdictLabel}</span></td>
                   <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.ltv ?? "—"}</td>

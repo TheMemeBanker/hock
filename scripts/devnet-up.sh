@@ -71,7 +71,8 @@ if [[ "$DB" == *127.0.0.1:5432* ]]; then bash scripts/local-pg.sh up >/dev/null 
 
 # 6. restart engine and web
 pkill -f "node src/index.js" || true; pkill -f "next start" || true; sleep 1
-(cd engine && nohup node src/index.js > /tmp/hock-engine.out 2>&1 &)
+# the engine exits 1 on a stall so a supervisor can restart it; this loop is that supervisor for a laptop
+(cd engine && nohup sh -c 'until node src/index.js; do echo "[supervisor] engine exited $?; restarting in 3s"; sleep 3; done' > /tmp/hock-engine.out 2>&1 &)
 (cd web && npx next build > /tmp/hock-web-build.log 2>&1 && nohup npx next start -p 3010 > /tmp/hock-web-prod.out 2>&1 &)
 sleep 12; grep -E "preflight\] FAIL|all loops started" /tmp/hock-engine.out || true
 echo "devnet up: program $PROGRAM_ID pool $POOL_PDA site http://localhost:3010 (open it with Phantom set to devnet)"

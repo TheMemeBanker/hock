@@ -23,7 +23,7 @@ export default function Risk() {
       <H2>For launchers</H2>
       <ul style={{ margin: 0, paddingLeft: 22, display: "grid", gap: 8 }}>
         <li>Launching is free and permissionless; nothing about a launch guarantees the coin will clear the gate or hold value.</li>
-        <li>The gate measures real liquidity, volume, routability and holder concentration. Concentrated supply or thin pools keep a coin out of collateral.</li>
+        <li>The gate opens borrowing at $50,000 of market cap and, beneath that line, measures real liquidity, volume, routability and holder concentration. Concentrated supply or thin pools keep a coin out of collateral.</li>
       </ul>
       <H2>Platform</H2>
       <p>RPC providers can serve stale state; the site and engine fail over and check slot advance, but a sufficiently broad outage can delay actions. Nothing here is financial advice.</p>

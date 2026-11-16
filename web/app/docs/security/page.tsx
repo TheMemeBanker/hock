@@ -43,7 +43,7 @@ export default function Security() {
       <H2>Threat model</H2>
       <Table head={["Actor", "Goal", "Controls"]} rows={[
         ["Borrower", "Over-borrow against an inflated or unsellable coin", "TWAP-capped price; pump guard; routability at loan size; 30% max LTV; short terms"],
-        ["Launcher", "Launch, pump, borrow, dump", "Two consecutive gate passes with real volume and liquidity; holder concentration check; delisting; sliced in-vault conversion"],
+        ["Launcher", "Launch, pump, borrow, dump", "Two consecutive gate passes above the $50k market-cap line with real volume and liquidity; holder concentration check; delisting; sliced in-vault conversion"],
         ["Outside trader", "Manipulate a thin pool at attestation time", "30-minute TWAP with minimum history; per-update factor cap; attestor refuses out-of-band prices; cross-sourced feeds with breaker"],
         ["Compromised engine key", "Drain vaults through conversions", "Oracle floor, router allowlist and slippage cap enforced by the program; engine cannot withdraw deposits or move collateral outside conversion and liquidation paths"],
         ["Compromised pool authority", "Change fee destination, pause, withdraw", "admin_withdraw limited to accrued fees; config changes emit events the site surfaces; authority on hardware"],

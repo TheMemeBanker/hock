@@ -228,7 +228,7 @@ export function LaunchForm() {
             </div>
           </div>
         </div>
-        <p style={{ margin: "12px 4px 0", fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>This is exactly how the coin's card looks on the board. Once it clears the gate the badge turns to Collateral ready and a Hock button appears.</p>
+        <p style={{ margin: "12px 4px 0", fontSize: 12, color: "var(--muted)", lineHeight: 1.6 }}>This is exactly how the coin's card looks on the board. Once it holds $50k market cap the badge turns to Collateral ready and a Hock button appears.</p>
       </aside>
     </div>
   );

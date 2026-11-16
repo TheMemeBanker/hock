@@ -98,9 +98,9 @@ try {
 
   // ---- 3. synthetic market ----
   const PRICE = 2_000n; // lamports per whole token (0.000002 SOL)
-  await query(`INSERT INTO synthetic_markets (mint, price_lamports_per_whole, liquidity_usd, volume_24h_usd, volume_1h_usd, route_ok, route_impact_bps, holders_pct_override, drift_bps_per_tick, note)
-               VALUES ($1,$2,50000,120000,6000,true,80,12,10,'lifecycle driver') ON CONFLICT (mint) DO UPDATE SET price_lamports_per_whole = EXCLUDED.price_lamports_per_whole, updated_at = now()`, [MINT, PRICE.toString()]);
-  ok("L3", "synthetic market row set (liq $50k, v24 $120k, v1 $6k, holders 12%, impact 80 bps)");
+  await query(`INSERT INTO synthetic_markets (mint, price_lamports_per_whole, liquidity_usd, volume_24h_usd, volume_1h_usd, route_ok, route_impact_bps, holders_pct_override, drift_bps_per_tick, note, market_cap_usd)
+               VALUES ($1,$2,50000,120000,6000,true,80,12,10,'lifecycle driver',75000) ON CONFLICT (mint) DO UPDATE SET price_lamports_per_whole = EXCLUDED.price_lamports_per_whole, updated_at = now()`, [MINT, PRICE.toString()]);
+  ok("L3", "synthetic market row set (mcap $75k, liq $50k, v24 $120k, v1 $6k, holders 12%, impact 80 bps)");
 
   // ---- 4. gate promotes ----
   const gate = await until("collateral_ready", async () => { const { rows } = await query(`SELECT verdict, consecutive_passes, reason FROM gate_state WHERE mint = $1`, [MINT]); return rows[0]?.verdict === "collateral_ready" ? rows[0] : (rows[0] ? (console.log(`   gate: ${rows[0].verdict} passes=${rows[0].consecutive_passes} ${rows[0].reason ?? ""}`), null) : null); }, { timeoutMs: 180_000, everyMs: 5000 });

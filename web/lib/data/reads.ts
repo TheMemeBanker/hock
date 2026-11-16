@@ -57,19 +57,19 @@ export async function getBoard(limit = 50): Promise<BoardRow[]> {
   if (!p) return [];
   try {
     const { rows } = await p.query(
-      `SELECT m.mint, m.name, m.symbol, m.image_url, m.created_at, g.verdict, g.liquidity_ok, g.velocity_ok, g.routability_ok, g.holders_ok, g.extensions_ok,
-              g.liquidity_usd, g.volume_24h_usd, g.route_quote_sol
+      `SELECT m.mint, m.name, m.symbol, m.image_url, m.created_at, g.verdict, g.market_cap_ok, g.liquidity_ok, g.velocity_ok, g.routability_ok, g.holders_ok, g.extensions_ok,
+              g.liquidity_usd, g.volume_24h_usd, g.route_quote_sol, g.market_cap_usd
          FROM mints m LEFT JOIN gate_state g ON g.mint = m.mint
         WHERE m.launched_here = true
         ORDER BY m.created_at DESC LIMIT $1`,
       [limit],
     );
     return rows.map((r) => {
-      const checks = [r.liquidity_ok, r.velocity_ok, r.routability_ok, r.holders_ok, r.extensions_ok].filter(Boolean).length;
+      const checks = [r.market_cap_ok, r.liquidity_ok, r.velocity_ok, r.routability_ok, r.holders_ok, r.extensions_ok].filter(Boolean).length;
       const verdict: string = r.verdict ?? "launched";
       const map: Record<string, [BoardRow["verdictClass"], string]> = {
         collateral_ready: ["ready", "Collateral ready"],
-        grading: ["grading", `Gate ${checks} of 5`],
+        grading: ["grading", `Gate ${checks} of 6`],
         launched: ["launched", "Launched"],
         delisted: ["delisted", "Delisted"],
       };
@@ -80,7 +80,7 @@ export async function getBoard(limit = 50): Promise<BoardRow[]> {
         symbol: r.symbol,
         imageUrl: r.image_url ?? null,
         age: ago(new Date(r.created_at)),
-        marketCap: null, // filled by the coin page from DexScreener at request time
+        marketCap: r.market_cap_usd != null ? usd(r.market_cap_usd) : null, // the gate's reading; the board page prefers the live dex figure when one exists
         liquidity: usd(r.liquidity_usd),
         verdictClass,
         verdictLabel,
@@ -148,6 +148,8 @@ export type CoinRow = {
   liquidity: string | null;
   volume24h: string | null;
   routeQuoteSol: string | null;
+  marketCapUsd: number | null;
+  minMarketCapUsd: number;
 };
 
 export async function getCoin(mint: string): Promise<CoinRow | null> {
@@ -156,8 +158,9 @@ export async function getCoin(mint: string): Promise<CoinRow | null> {
   try {
     const { rows } = await p.query(
       `SELECT m.mint, m.name, m.symbol, m.decimals, m.token_program, m.image_url, m.created_at, m.launched_here,
-              g.verdict, g.liquidity_ok, g.velocity_ok, g.routability_ok, g.holders_ok, g.extensions_ok, g.consecutive_passes,
-              g.liquidity_usd, g.volume_24h_usd, g.volume_1h_usd, g.route_quote_sol, g.top10_holder_pct, g.reason, g.graded_at
+              g.verdict, g.market_cap_ok, g.liquidity_ok, g.velocity_ok, g.routability_ok, g.holders_ok, g.extensions_ok, g.consecutive_passes,
+              g.liquidity_usd, g.volume_24h_usd, g.volume_1h_usd, g.route_quote_sol, g.top10_holder_pct, g.reason, g.graded_at,
+              g.market_cap_ok, g.market_cap_usd, g.min_market_cap_usd
          FROM mints m LEFT JOIN gate_state g ON g.mint = m.mint
         WHERE m.mint = $1`,
       [mint],
@@ -172,7 +175,9 @@ export async function getCoin(mint: string): Promise<CoinRow | null> {
       delisted: ["delisted", "Delisted"],
     };
     const [verdictClass, verdictLabel] = cls[verdict];
+    const minMcap = r.min_market_cap_usd != null ? Number(r.min_market_cap_usd) : 50_000;
     const checks: GateCheck[] = [
+      { key: "market_cap", label: `Market cap at or above $${minMcap.toLocaleString("en-US")}`, ok: !!r.market_cap_ok, detail: r.market_cap_usd != null ? `${usd(r.market_cap_usd)} now` : null },
       { key: "liquidity", label: "Pooled liquidity", ok: !!r.liquidity_ok, detail: usd(r.liquidity_usd) },
       { key: "velocity", label: "Trading velocity", ok: !!r.velocity_ok, detail: r.volume_24h_usd != null ? `${usd(r.volume_24h_usd)} / 24h` : null },
       { key: "routability", label: "Routability at loan size", ok: !!r.routability_ok, detail: r.route_quote_sol != null ? `${Number(r.route_quote_sol).toFixed(3)} SOL quote` : null },
@@ -192,6 +197,8 @@ export async function getCoin(mint: string): Promise<CoinRow | null> {
       verdictClass,
       verdictLabel,
       checks,
+      marketCapUsd: r.market_cap_usd != null ? Number(r.market_cap_usd) : null,
+      minMarketCapUsd: minMcap,
       consecutivePasses: Number(r.consecutive_passes ?? 0),
       reason: r.reason ?? null,
       gradedAt: r.graded_at ? new Date(r.graded_at).toISOString() : null,
