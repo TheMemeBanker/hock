@@ -77,7 +77,7 @@ export function LendPanel() {
         <span className="lab">{tab === "deposit" ? "Amount to deposit (SOL)" : "Amount to withdraw (SOL)"}</span>
         <div style={{ display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" }}>
           <input className="mono" value={input} onChange={(e) => { setInput(e.target.value); a.reset(); }} inputMode="decimal" placeholder="0" style={{ flex: "1 1 200px", fontSize: 20, padding: "12px 14px", borderRadius: 12, border: "1px solid var(--line)", fontFamily: "inherit" }} />
-          <button type="button" className="btn line" disabled={tab === "deposit" ? maxDeposit === null : shareValue === null} onClick={() => {
+          <button type="button" className="btn line inline" disabled={tab === "deposit" ? maxDeposit === null : shareValue === null} onClick={() => {
             const m = tab === "deposit" ? maxDeposit : shareValue !== null && available !== null ? (shareValue < available ? shareValue : available) : null;
             if (m !== null) { setInput((Number(m) / 1e9).toFixed(9).replace(/0+$/, "").replace(/\.$/, "")); a.reset(); }
           }}>Max</button>

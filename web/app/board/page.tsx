@@ -1,4 +1,5 @@
 import Link from "next/link";
+import { Mark } from "@/components/Mark";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getBoard } from "@/lib/data/reads";
@@ -25,10 +26,10 @@ export default async function BoardPage() {
         <p style={{ margin: "0 0 28px", maxWidth: "70ch", color: "var(--body)" }}>
           Every coin launched on HOCK, in launch order. The borrow line is $50,000 of market cap, read live. Under it the gate keeps a sellability floor: pooled liquidity, trading velocity, routability at loan size, holder concentration and a Token-2022 extension audit. </p>
         <div style={{ overflowX: "auto", background: "var(--card)", border: "1px solid var(--line)", borderRadius: 24, boxShadow: "var(--shadow-card)" }}>
-          <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 860 }}>
+          <table className="board">
             <thead>
               <tr>{["Coin", "Age", "Mkt cap", "Liquidity", "Gate", "LTV", "Borrowable", ""].map((h) => (
-                <th key={h} style={{ fontSize: 12, letterSpacing: ".14em", textTransform: "uppercase", color: "var(--muted)", textAlign: "left", padding: "14px 18px", borderBottom: "1px solid var(--line)", fontWeight: 800, whiteSpace: "nowrap" }}>{h}</th>
+                <th key={h}>{h}</th>
               ))}</tr>
             </thead>
             <tbody>
@@ -37,23 +38,23 @@ export default async function BoardPage() {
               )}
               {rows.map((r) => (
                 <tr key={r.mint}>
-                  <td style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>
+                  <td className="coin-cell">
                     <div style={{ display: "flex", gap: 12, alignItems: "center" }}>
-                      {r.imageUrl ? <img src={r.imageUrl} alt="" width={36} height={36} style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} /> : <span aria-hidden style={{ width: 36, height: 36, borderRadius: 10, background: "var(--line)", flexShrink: 0 }} />}
+                      {r.imageUrl ? <img src={r.imageUrl} alt="" width={36} height={36} style={{ borderRadius: 10, objectFit: "cover", border: "1px solid var(--line)", flexShrink: 0 }} /> : <span aria-hidden className="art-ph" style={{ width: 36, height: 36 }}><Mark size={18} tone="var(--line-2)" live="var(--line-2)" /></span>}
                       <div style={{ minWidth: 0 }}>
                         <strong>{r.name}</strong> <span className="mono" style={{ color: "var(--muted)" }}>${r.symbol}</span>
                         <div className="mono" style={{ fontSize: 11, color: "var(--muted)", marginTop: 4, overflowWrap: "anywhere" }}>{r.mint}</div>
                       </div>
                     </div>
                   </td>
-                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.age}</td>
-                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{markets.get(r.mint)?.marketCapUsd != null ? fmtUsd(markets.get(r.mint)?.marketCapUsd) : (r.marketCap ?? "—")}</td>
-                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.liquidity ?? fmtUsd(markets.get(r.mint)?.liquidityUsd)}</td>
-                  <td style={{ padding: 18, borderBottom: "1px solid var(--line)" }}><span className={`pill ${r.verdictClass}`}>{r.verdictLabel}</span></td>
-                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.ltv ?? "—"}</td>
-                  <td className="mono" style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>{r.borrowable ?? "—"}</td>
-                  <td style={{ padding: 18, borderBottom: "1px solid var(--line)" }}>
-                    <Link href={`/coin/${r.mint}`} style={{ fontWeight: 800 }}>{r.verdictClass === "ready" ? "Hock" : "View"}</Link>
+                  <td className="mono" data-label="Age">{r.age}</td>
+                  <td className="mono" data-label="Mkt cap">{markets.get(r.mint)?.marketCapUsd != null ? fmtUsd(markets.get(r.mint)?.marketCapUsd) : (r.marketCap ?? "—")}</td>
+                  <td className="mono" data-label="Liquidity">{r.liquidity ?? fmtUsd(markets.get(r.mint)?.liquidityUsd)}</td>
+                  <td data-label="Gate"><span className={`pill ${r.verdictClass}`}>{r.verdictLabel}</span></td>
+                  <td className="mono" data-label="LTV">{r.ltv ?? "—"}</td>
+                  <td className="mono" data-label="Borrowable">{r.borrowable ?? "—"}</td>
+                  <td className="action-cell">
+                    <Link href={`/coin/${r.mint}`} className="mono" style={{ fontWeight: 600, color: r.verdictClass === "ready" ? "var(--accent)" : undefined }}>{r.verdictClass === "ready" ? "Hock →" : "View →"}</Link>
                   </td>
                 </tr>
               ))}

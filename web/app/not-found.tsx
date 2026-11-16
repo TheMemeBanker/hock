@@ -11,7 +11,7 @@ export default function NotFound() {
         <h1 className="wm" style={{ margin: 0, fontSize: "clamp(40px,6vw,88px)", lineHeight: 1 }}>Nothing hocked here.</h1>
         <p style={{ margin: 0, maxWidth: "56ch", color: "var(--body)" }}>That page does not exist. If you followed a coin link, check the full mint address against the board; the site never shortens addresses.</p>
         <div style={{ display: "flex", gap: 14, flexWrap: "wrap" }}>
-          <Link className="btn ink" href="/board">The board</Link>
+          <Link className="btn primary" href="/board">The board</Link>
           <Link className="btn line" href="/">Home</Link>
         </div>
       </section>

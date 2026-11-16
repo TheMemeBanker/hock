@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { PublicKey } from "@solana/web3.js";
+import { Mark } from "@/components/Mark";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { CopyAddress } from "@/components/CopyAddress";
@@ -47,7 +48,7 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
       <Header />
       <section style={{ padding: "clamp(40px,5vw,72px) 0", display: "grid", gap: 28 }}>
         <div style={{ display: "flex", gap: 20, alignItems: "center", flexWrap: "wrap" }}>
-          {coin.imageUrl ? <img src={coin.imageUrl} alt="" width={72} height={72} style={{ borderRadius: 20, objectFit: "cover", border: "1px solid var(--line)" }} /> : <span style={{ width: 72, height: 72, borderRadius: 20, background: "var(--line)", display: "inline-block" }} />}
+          {coin.imageUrl ? <img src={coin.imageUrl} alt="" width={72} height={72} style={{ borderRadius: 20, objectFit: "cover", border: "1px solid var(--line)" }} /> : <span aria-hidden className="art-ph" style={{ width: 72, height: 72, borderRadius: 20 }}><Mark size={34} tone="var(--line-2)" live="var(--line-2)" /></span>}
           <div style={{ display: "grid", gap: 6, minWidth: 0, flex: "1 1 320px" }}>
             <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
               <h1 className="wm" style={{ margin: 0, fontSize: "clamp(36px,4.5vw,60px)", lineHeight: 1 }}>{coin.name}</h1>
@@ -78,11 +79,11 @@ export default async function CoinPage({ params }: { params: Promise<{ mint: str
             <ul style={{ margin: 0, padding: 0, listStyle: "none", display: "grid", gap: 10 }}>
               {coin.checks.map((c) => (
                 <li key={c.key} style={{ display: "flex", gap: 12, alignItems: "baseline", justifyContent: "space-between", borderBottom: "1px solid var(--line)", paddingBottom: 8 }}>
-                  <span style={{ display: "flex", gap: 10, alignItems: "center" }}>
+                  <span style={{ display: "flex", gap: 10, alignItems: "center", flex: "1 1 auto", minWidth: 0 }}>
                     <i aria-hidden style={{ width: 10, height: 10, borderRadius: "50%", background: c.ok ? "var(--accent)" : "var(--danger)", flexShrink: 0 }} />
                     <span>{c.label}</span>
                   </span>
-                  <span className="mono" style={{ fontSize: 13, color: "var(--muted)" }}>{c.detail ?? DASH}</span>
+                  <span className="mono" style={{ fontSize: 13, color: "var(--muted)", whiteSpace: "nowrap" }}>{c.detail ?? DASH}</span>
                 </li>
               ))}
             </ul>

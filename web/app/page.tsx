@@ -92,7 +92,7 @@ export default async function Home() {
           <Link href="/board" className="mono" style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600 }}>Full board →</Link>
         </div>
         <div style={{ overflowX: "auto", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--radius)", boxShadow: "var(--shadow-card)" }}>
-          <table style={{ minWidth: 860 }}>
+          <table className="board">
             <thead>
               <tr>{["Coin", "Age", "Market cap", "Liquidity", "Gate", "LTV", "Borrowable", ""].map((h) => <th key={h}>{h}</th>)}</tr>
             </thead>
@@ -102,14 +102,14 @@ export default async function Home() {
               )}
               {board.map((r) => (
                 <tr key={r.mint}>
-                  <td><strong>{r.name}</strong> <span className="mono" style={{ color: "var(--muted)", marginLeft: 6 }}>${r.symbol}</span></td>
-                  <td className="mono">{r.age}</td>
-                  <td className="mono">{r.marketCap ?? "—"}</td>
-                  <td className="mono">{r.liquidity ?? "—"}</td>
-                  <td><span className={`pill ${r.verdictClass}`}>{r.verdictLabel}</span></td>
-                  <td className="mono">{r.ltv ?? "—"}</td>
-                  <td className="mono">{r.borrowable ?? "—"}</td>
-                  <td><Link href={`/coin/${r.mint}`} className="mono" style={{ fontWeight: 600, color: r.verdictClass === "ready" ? "var(--accent)" : undefined }}>{r.verdictClass === "ready" ? "Hock →" : "View →"}</Link></td>
+                  <td className="coin-cell"><strong>{r.name}</strong> <span className="mono" style={{ color: "var(--muted)", marginLeft: 6 }}>${r.symbol}</span></td>
+                  <td className="mono" data-label="Age">{r.age}</td>
+                  <td className="mono" data-label="Mkt cap">{r.marketCap ?? "—"}</td>
+                  <td className="mono" data-label="Liquidity">{r.liquidity ?? "—"}</td>
+                  <td data-label="Gate"><span className={`pill ${r.verdictClass}`}>{r.verdictLabel}</span></td>
+                  <td className="mono" data-label="LTV">{r.ltv ?? "—"}</td>
+                  <td className="mono" data-label="Borrowable">{r.borrowable ?? "—"}</td>
+                  <td className="action-cell"><Link href={`/coin/${r.mint}`} className="mono" style={{ fontWeight: 600, color: r.verdictClass === "ready" ? "var(--accent)" : undefined }}>{r.verdictClass === "ready" ? "Hock →" : "View →"}</Link></td>
                 </tr>
               ))}
             </tbody>
