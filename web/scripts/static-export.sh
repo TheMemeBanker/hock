@@ -39,5 +39,9 @@ rm -rf out .next
 npx next build
 rm -rf "$OUT" && mv out "$OUT"
 touch "$OUT/.nojekyll"
+# the static host has no server redirects: keep /borrow working with a meta refresh to /dashboard
+mkdir -p "$OUT/borrow" && cat > "$OUT/borrow/index.html" <<HTML
+<!doctype html><meta charset="utf-8"><title>HOCK</title><meta http-equiv="refresh" content="0; url=${NEXT_PUBLIC_BASE_PATH}/dashboard/"><link rel="canonical" href="${NEXT_PUBLIC_BASE_PATH}/dashboard/"><body style="background:#0A0C10"></body>
+HTML
 [ -n "${PAGES_CNAME:-}" ] && echo "$PAGES_CNAME" > "$OUT/CNAME"
 echo "static site at $OUT (basePath '${NEXT_PUBLIC_BASE_PATH}')"
