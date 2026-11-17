@@ -129,10 +129,10 @@ tbody tr:hover td { background: rgba(255, 255, 255, .015); }
 .site-wallet .wallet-adapter-button { background: transparent; color: var(--ink); border: 1px solid var(--line-2); border-radius: var(--radius-sm); height: auto; min-height: 44px; padding: 0 18px; font-family: var(--font-mono); font-weight: 600; font-size: 13px; line-height: 1; }
 .site-wallet .wallet-adapter-button:not([disabled]):hover { background: transparent; border-color: var(--accent); color: var(--accent); }
 .site-wallet .wallet-adapter-button-start-icon { width: 18px; height: 18px; }
-.wallet-adapter-dropdown-list { font-family: inherit; background: var(--panel-2); border: 1px solid var(--line-2); }
-.wallet-adapter-dropdown-list-item { font-family: var(--font-mono); font-size: 13px; }
-.wallet-adapter-dropdown-list-item:not([disabled]):hover { background: var(--card); }
-.wallet-adapter-modal-wrapper { background: var(--panel); border: 1px solid var(--line-2); font-family: var(--font-body); }
+.site-wallet .wallet-adapter-dropdown-list { font-family: inherit; background: var(--card); border: 1px solid var(--line-2); border-radius: var(--radius-sm); box-shadow: var(--shadow-card); padding: 6px; gap: 2px; }
+.site-wallet .wallet-adapter-dropdown-list-item { font-family: var(--font-mono); font-size: 13px; color: var(--body); border-radius: 6px; padding: 10px 14px; }
+.site-wallet .wallet-adapter-dropdown-list-item:not([disabled]):hover { background: var(--panel-2); color: var(--ink); }
+body .wallet-adapter-modal-wrapper { background: var(--panel); border: 1px solid var(--line-2); font-family: var(--font-body); }
 .wallet-adapter-modal-title { color: var(--ink); font-family: var(--font-display); }
 .wallet-adapter-modal-list .wallet-adapter-button { font-family: var(--font-mono); font-size: 14px; }
 .wallet-adapter-modal-list .wallet-adapter-button:hover { background: var(--panel-2); }

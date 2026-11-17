@@ -106,7 +106,7 @@ export function Tickets({ readyMints }: { readyMints: ReadyMint[] }) {
         <div style={{ display: "flex", alignItems: "baseline", gap: 14, flexWrap: "wrap" }}>
           <h2 className="wm" style={{ margin: 0, fontSize: 30 }}>Your tickets</h2>
           <span style={{ fontSize: 14, color: "var(--muted)" }}>{loans === null ? "Reading chain…" : `${open.length} open · ${closed.length} closed`}</span>
-          <button type="button" className="btn line" onClick={load} style={{ marginLeft: "auto", minHeight: 36, padding: "0 14px", fontSize: 13 }}>Refresh</button>
+          <button type="button" className="btn line inline" onClick={load} style={{ marginLeft: "auto", minHeight: 36, padding: "0 14px", fontSize: 13 }}>Refresh</button>
         </div>
         {err && <span style={{ fontSize: 13, color: "var(--danger)" }}>{err}</span>}
         {loans !== null && open.length === 0 && <div className="card" style={{ color: "var(--body)" }}>No open tickets for this wallet.</div>}
