@@ -26,10 +26,10 @@ const BIG = blades(8, 7, 14, 6);
 const SMALL = blades(6, 9, 16, 4, 58, 34);
 const HEX_BIG = HEX(19), HEX_SMALL = HEX(18);
 
-export const Mark = memo(function Mark({ size = 40, tone = "currentColor", hot = "var(--accent)", small, label = "HOCK" }: { size?: number; tone?: string; hot?: string; small?: boolean; label?: string }) {
+export const Mark = memo(function Mark({ size = 40, tone = "currentColor", hot = "var(--accent)", small, label = "HOCK", className }: { size?: number; tone?: string; hot?: string; small?: boolean; label?: string; className?: string }) {
   const set = small || size <= 32 ? SMALL : BIG;
   return (
-    <svg viewBox="0 0 128 128" width={size} height={size} role="img" aria-label={label} style={{ display: "block", flexShrink: 0 }}>
+    <svg viewBox="0 0 128 128" width={size} height={size} role="img" aria-label={label} className={className} style={{ display: "block", flexShrink: 0 }}>
       {set.map((b, i) => <path key={i} d={b.d} fill={b.lit ? hot : tone} />)}
       <path d={small || size <= 32 ? HEX_SMALL : HEX_BIG} fill="none" stroke={tone} strokeWidth={small || size <= 32 ? 7 : 5} strokeLinejoin="round" />
       <circle cx="64" cy="64" r="5" fill={hot} />

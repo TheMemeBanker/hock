@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Mark } from "@/components/Mark";
+import { LaunchTrack } from "@/components/LaunchTrack";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { getBoard } from "@/lib/data/reads";
@@ -25,6 +26,7 @@ export default async function BoardPage() {
         </div>
         <p style={{ margin: "0 0 28px", maxWidth: "70ch", color: "var(--body)" }}>
           Every coin launched on HOCK, in launch order. The borrow line is $50,000 of market cap, read live. Under it the gate keeps a sellability floor: pooled liquidity, trading velocity, routability at loan size, holder concentration and a Token-2022 extension audit. </p>
+        {rows.length === 0 ? <LaunchTrack /> : (
         <div style={{ overflowX: "auto", background: "var(--card)", border: "1px solid var(--line)", borderRadius: 24, boxShadow: "var(--shadow-card)" }}>
           <table className="board">
             <thead>
@@ -33,9 +35,6 @@ export default async function BoardPage() {
               ))}</tr>
             </thead>
             <tbody>
-              {rows.length === 0 && (
-                <tr><td colSpan={8} style={{ padding: 28, color: "var(--muted)" }}>Nothing launched yet. <Link href="/launch">Be the first.</Link></td></tr>
-              )}
               {rows.map((r) => (
                 <tr key={r.mint}>
                   <td className="coin-cell">
@@ -61,6 +60,7 @@ export default async function BoardPage() {
             </tbody>
           </table>
         </div>
+        )}
       </section>
       <Footer />
     </div>

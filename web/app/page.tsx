@@ -2,6 +2,7 @@ import Link from "next/link";
 import { Header } from "@/components/Header";
 import { Footer } from "@/components/Footer";
 import { Mark } from "@/components/Mark";
+import { LaunchTrack } from "@/components/LaunchTrack";
 import { getBoard, getPoolSummary } from "@/lib/data/reads";
 
 export const revalidate = 15;
@@ -12,7 +13,8 @@ export default async function Home() {
     <div className="wrap">
       <Header />
 
-      <section id="top" style={{ display: "flex", flexWrap: "wrap", gap: 48, alignItems: "center", padding: "clamp(48px,7vw,104px) 0 clamp(48px,6vw,88px)" }}>
+      <section id="top" className="hero" style={{ display: "flex", flexWrap: "wrap", gap: 48, alignItems: "center", padding: "clamp(48px,7vw,104px) 0 clamp(48px,6vw,88px)" }}>
+        <Mark size={640} tone="var(--ink)" hot="var(--accent)" className="hero-ap" label="" />
         <div style={{ flex: "1 1 560px", minWidth: 0, display: "flex", flexDirection: "column", gap: 28 }}>
           <span className="kicker">Launchpad with built-in lending</span>
           <h1 className="wm hero-h1">Launch it.<br /><em>Hock it.</em></h1>
@@ -91,15 +93,13 @@ export default async function Home() {
           <span className="mono" style={{ fontSize: 13, color: "var(--muted)" }}>Launched here, graded live.</span>
           <Link href="/board" className="mono" style={{ marginLeft: "auto", fontSize: 13, fontWeight: 600 }}>Full board →</Link>
         </div>
+        {board.length === 0 ? <LaunchTrack /> : (
         <div style={{ overflowX: "auto", background: "var(--card)", border: "1px solid var(--line)", borderRadius: "var(--radius)", boxShadow: "var(--shadow-card)" }}>
           <table className="board">
             <thead>
               <tr>{["Coin", "Age", "Market cap", "Liquidity", "Gate", "LTV", "Borrowable", ""].map((h) => <th key={h}>{h}</th>)}</tr>
             </thead>
             <tbody>
-              {board.length === 0 && (
-                <tr><td colSpan={8} style={{ padding: 28, color: "var(--muted)" }}>Nothing launched yet. The first coin on HOCK will appear here the moment its transaction confirms.</td></tr>
-              )}
               {board.map((r) => (
                 <tr key={r.mint}>
                   <td className="coin-cell"><strong>{r.name}</strong> <span className="mono" style={{ color: "var(--muted)", marginLeft: 6 }}>${r.symbol}</span></td>
@@ -115,6 +115,7 @@ export default async function Home() {
             </tbody>
           </table>
         </div>
+        )}
       </section>
 
       <section id="lend" style={{ padding: "clamp(40px,6vw,80px) 0" }}>
