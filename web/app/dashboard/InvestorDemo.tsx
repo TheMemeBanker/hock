@@ -15,11 +15,11 @@ const LINE = 50_000;
 const DAYS = 14;
 const COIN = { name: "Orbit", symbol: "ORBIT" };
 
-type Scenario = { id: string; name: string; mc: number; vol: number; hold: number; shape: (t: number) => number };
+type Scenario = { id: string; name: string; mc: number; vol: number; hold: number; shape: (t: number) => number; desc: string };
 const SCENARIOS: Scenario[] = [
-  { id: "quiet", name: "Quiet launch", mc: 18_000, vol: 9_000, hold: 4, shape: (t) => 0.25 + 0.75 * (1 - Math.exp(-t / 5)) },
-  { id: "cross", name: "Crosses the line", mc: 84_000, vol: 60_000, hold: 3, shape: (t) => 1 / (1 + Math.exp(-(t - 3.2) * 1.1)) * 0.92 + 0.08 },
-  { id: "runner", name: "Runner", mc: 650_000, vol: 1_400_000, hold: 2, shape: (t) => Math.min(1, 0.06 + Math.pow(t / 10, 1.6)) },
+  { id: "quiet", name: "Quiet launch", mc: 18_000, vol: 9_000, hold: 4, shape: (t) => 0.25 + 0.75 * (1 - Math.exp(-t / 5)), desc: "Most launches. Tops out around $18k and never reaches the line, so the gate stays shut: no ticket, no lender exposure, no one gets hurt." },
+  { id: "cross", name: "Crosses the line", mc: 84_000, vol: 60_000, hold: 3, shape: (t) => 1 / (1 + Math.exp(-(t - 3.2) * 1.1)) * 0.92 + 0.08, desc: "A good launch. Climbs for three days, holds $50k on day four, and the launcher takes a ticket instead of selling into their own chart." },
+  { id: "runner", name: "Runner", mc: 650_000, vol: 1_400_000, hold: 2, shape: (t) => Math.min(1, 0.06 + Math.pow(t / 10, 1.6)), desc: "The breakout. Crosses on day one and keeps going to $650k; rewards compound with volume and the ticket is a small fraction of the position." },
 ];
 
 const usd = (n: number, dp = 0) => n >= 1e6 ? `$${(n / 1e6).toFixed(2)}M` : n >= 10_000 ? `$${(n / 1e3).toFixed(1)}k` : `$${n.toLocaleString("en-US", { maximumFractionDigits: dp })}`;
@@ -125,6 +125,7 @@ export function InvestorDemo({ wallet }: { wallet: string }) {
           </div>
           <span className="db-model">modelled</span>
         </div>
+        <p className="db-scn-desc"><b>{sc.name}.</b> {sc.desc}</p>
       </div>
 
       {/* KPI strip */}

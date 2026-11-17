@@ -260,6 +260,8 @@ td.mono { white-space: nowrap; }
 .db-who b { font-size: 15px; color: var(--ink); }
 .db-who span { font-size: 12.5px; color: var(--muted); }
 .db-scn { margin-left: auto; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+.db-scn-desc { flex-basis: 100%; margin: 4px 0 0; padding-top: 12px; border-top: 1px solid var(--line); font-size: 13.5px; line-height: 1.5; color: var(--muted); }
+.db-scn-desc b { color: var(--ink); font-weight: 600; }
 .db-seg { display: inline-flex; border: 1px solid var(--line-2); border-radius: 8px; overflow: hidden; }
 .db-seg button { font: 600 12px/1 var(--font-mono); padding: 10px 12px; border: 0; background: transparent; color: var(--body); cursor: pointer; border-right: 1px solid var(--line-2); }
 .db-seg button:last-child { border-right: 0; }
