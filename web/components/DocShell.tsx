@@ -7,6 +7,7 @@ export const DOCS = [
   { href: "/docs/whitepaper", label: "Whitepaper" },
   { href: "/docs/how-it-works", label: "How it works" },
   { href: "/docs/fees", label: "Fees" },
+  { href: "/docs/rewards", label: "Rewards" },
   { href: "/docs/security", label: "Security" },
   { href: "/docs/risk", label: "Risk" },
   { href: "/docs/terms", label: "Terms" },

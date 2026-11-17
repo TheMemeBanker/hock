@@ -8,6 +8,7 @@
 import { useMemo, useState } from "react";
 import { MEMECOIN_TIERS, pct } from "@/lib/tiers";
 import { Mark } from "@/components/Mark";
+import { MILESTONE_TIERS, evaluateMilestones, boostFor } from "@/lib/rewards";
 
 export const INVESTOR_WALLET = process.env.NEXT_PUBLIC_INVESTOR_WALLET || "BFceiceSoKBFCibgqdkitH83TVDesxvNPhGLc5zHJu88";
 
@@ -82,8 +83,12 @@ export function InvestorDemo({ wallet }: { wallet: string }) {
     const poolSize = 1_250; // modelled pool, SOL
     const protocolMonthly = principal * fee * 0.1 * 40 * 30;
     const dayOfTicket = ready ? crossDay : null;
-    const portfolio = holdingsUsd + (ready ? receive * solUsd : 0) + creator;
-    return { path, crossDay, ready: ready && gateOk, cumVol, rewardByDay, creator, liquidity, holdingsUsd, holdingsSol, principal, feeSol, receive, ltv, checks, apy, poolSize, protocolMonthly, dayOfTicket, portfolio };
+    const boost = boostFor({ neverSold: true, hocked: ready && gateOk });
+    const milestones = evaluateMilestones(path, { boost: boost.mult, gatePasses: gateOk, launcherRetainedPct: 100, today: DAYS });
+    const milestoneSol = milestones.reduce((a, r) => a + r.paidSol, 0);
+    const next = milestones.find((r) => r.status !== "paid") ?? null;
+    const portfolio = holdingsUsd + (ready ? receive * solUsd : 0) + creator + milestoneSol * solUsd;
+    return { path, crossDay, ready: ready && gateOk, cumVol, rewardByDay, creator, liquidity, holdingsUsd, holdingsSol, principal, feeSol, receive, ltv, checks, apy, poolSize, protocolMonthly, dayOfTicket, portfolio, boost, milestones, milestoneSol, next };
   }, [sc, mc, vol, hold, tier, solUsd, creatorBps, util]);
 
   // sparkline + bars geometry
@@ -102,12 +107,15 @@ export function InvestorDemo({ wallet }: { wallet: string }) {
   const activity = [
     { d: 0, t: "Launched", s: `${COIN.name} · 1,000,000,000 supply · art on Arweave`, k: "" },
     { d: 1, t: "Grading", s: "gate reading market cap, liquidity, velocity, route, holders", k: "" },
+    ...m.milestones.filter((r) => r.status === "paid").map((r) => ({ d: r.dayReached ?? 0, t: `Milestone · ${r.name}`, s: `${usd(r.capUsd)} held 24h on TWAP · ${sol(r.paidSol)} paid${m.boost.mult > 1 ? ` (${m.boost.mult.toFixed(2)}x boost)` : ""}`, k: "hot" })),
     ...(m.ready ? [
       { d: m.crossDay, t: "Crossed $50,000", s: "collateral ready · price feed initialised", k: "hot" },
       { d: m.crossDay, t: "Ticket written", s: `${sol(m.principal)} principal · ${tier.name} · ${pct(tier.feeBps)} fee to the pool`, k: "hot" },
       { d: Math.min(DAYS, m.crossDay + tier.durationDays), t: "Repay due", s: `${sol(m.principal)} unlocks ${sol(m.holdingsSol)} of ${COIN.symbol}`, k: "" },
     ] : [{ d: DAYS, t: "Still below the line", s: "no ticket can exist; no lender is exposed", k: "" }]),
   ];
+
+  activity.sort((a, b) => a.d - b.d);
 
   return (
     <div className="db">
@@ -133,7 +141,7 @@ export function InvestorDemo({ wallet }: { wallet: string }) {
         <div><span>Portfolio</span><b className="mono">{usd(m.portfolio)}</b><small>{COIN.symbol} + SOL in hand + rewards</small></div>
         <div><span>Borrowing power</span><b className="mono" style={{ color: m.ready ? "var(--accent)" : undefined }}>{m.ready ? sol(m.principal) : "—"}</b><small>{m.ready ? `${pct(tier.ltvBps)} of ${usd(m.holdingsUsd)} at ${tier.name}` : "opens at the $50k line"}</small></div>
         <div><span>Open tickets</span><b className="mono">{m.ready ? "1" : "0"}</b><small>{m.ready ? `${sol(m.principal)} owed · due ${dueLabel}` : "nothing outstanding"}</small></div>
-        <div><span>Earned, 14 days</span><b className="mono">{usd(m.creator)}</b><small>creator rewards on {usd(m.cumVol)} traded</small></div>
+        <div><span>Earned, 14 days</span><b className="mono">{usd(m.creator + m.milestoneSol * solUsd)}</b><small>{usd(m.creator)} creator rewards + {sol(m.milestoneSol)} milestones</small></div>
       </div>
 
       <div className="db-grid">
@@ -208,6 +216,28 @@ export function InvestorDemo({ wallet }: { wallet: string }) {
           </div>
         </section>
 
+        {/* milestones */}
+        <section className="db-panel span2">
+          <header><h2>Milestones</h2><span className="mono">{sol(m.milestoneSol)} paid · boost {m.boost.mult.toFixed(2)}x</span></header>
+          <div className="db-ms">
+            <ol className="db-ladder">
+              {m.milestones.map((r) => (
+                <li key={r.rank} className={r.status}>
+                  <span className="db-ms-cap mono">{r.capUsd >= 1e6 ? `$${r.capUsd / 1e6}M` : `$${r.capUsd / 1e3}k`}</span>
+                  <i />
+                  <b>{r.name}</b>
+                  <small className="mono">{r.status === "paid" ? `${sol(r.paidSol)} paid` : r.status === "claimable" ? `${sol(r.rewardSol * m.boost.mult)} claimable` : r.status === "holding" ? `holding · ${Math.round(r.holdPct * 100)}%` : r.status === "forfeited" ? "forfeited" : `${r.rewardSol} SOL`}</small>
+                </li>
+              ))}
+            </ol>
+            <div className="db-ms-side">
+              <div><span>Next</span><b className="mono">{m.next ? `${m.next.name} · ${usd(m.next.capUsd)}` : "ladder complete"}</b><small>{m.next ? `${sol(m.next.rewardSol * m.boost.mult)} when held 24h on TWAP` : `${MILESTONE_TIERS.length} of ${MILESTONE_TIERS.length} paid`}</small></div>
+              <div><span>Boosts</span><b className="mono">{m.boost.active.length ? m.boost.active.map((b) => b.name).join(" · ") : "none yet"}</b><small>{m.boost.active.length ? `+${Math.round((m.boost.mult - 1) * 100)}% on every tier` : "never sell, or hock instead of selling"}</small></div>
+              <div><span>Rules</span><b className="mono">24h hold · gate open · still holding</b><small>spikes, dumps and one-wallet coins don't pay</small></div>
+            </div>
+          </div>
+        </section>
+
         {/* pool */}
         <section className="db-panel">
           <header><h2>Pool</h2><span className="mono">lender side</span></header>
@@ -221,7 +251,7 @@ export function InvestorDemo({ wallet }: { wallet: string }) {
         </section>
 
         {/* activity */}
-        <section className="db-panel span2">
+        <section className="db-panel span3">
           <header><h2>Activity</h2><span className="mono">{COIN.symbol} · last 14 days</span></header>
           <ol className="db-feed">
             {activity.map((a, i) => (

@@ -114,6 +114,10 @@ borrow (user) → attested, in-vault → optional arm (user consent on chain) �
 
 Borrowers are warned before a trigger: the site and the outbox notify at 10 percent and 5 percent above the trigger price.
 
+## 4b. Milestone rewards
+
+HOCK pays launchers whose coins hold market-cap milestones (`web/lib/rewards.ts` holds the ladder and rules; the docs page `/docs/rewards` surfaces them). A milestone counts only when the 30-minute TWAP market cap from the attested feed stays at or above the line for 24 consecutive hours, the gate passes at claim, the coin meets the distribution floor (100+ holders, top-10 ≤ 40%, launcher ≤ 10%) and the trading floor (24h volume ≥ 10% of cap, 50+ unique traders), and the launcher still holds ≥ 50% of their day-0 allocation with no sells in the window. Tiers pay once, in order, in SOL from a Rewards Pool funded by half of the protocol's fee share; dumping more than half the allocation forfeits unpaid tiers; boosts of +25% for never selling and +25% for hocking instead of selling stack to 1.5x. Engine work to ship it: a `milestone_state` table (per mint: tier, hold-start cycle, samples, verdict) written by the gate loop, a `reward_claims` ledger, a claim instruction or signed-payout path from the Rewards Pool wallet, and the public pool balance on the site.
+
 ## 5. Fee model
 
 - Launch: free. An optional initial buy pays only the router's own fee.
