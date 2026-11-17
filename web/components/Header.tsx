@@ -23,7 +23,7 @@ const WALLET_LABELS = {
 const NAV = [
   ["/launch", "Launch"],
   ["/board", "Board"],
-  ["/borrow", "Dashboard"],
+  ["/dashboard", "Dashboard"],
   ["/lend", "Lend"],
   ["/docs", "Docs"],
 ] as const;
@@ -39,7 +39,7 @@ export function Header() {
       </Link>
       <nav aria-label="Primary" className="site-nav">
         {NAV.map(([href, label]) => (
-          <Link key={href} href={href} className={path === href || path.startsWith(href + "/") || (href === "/borrow" && path === "/dashboard") ? "current" : undefined}>
+          <Link key={href} href={href} className={path === href || path.startsWith(href + "/") ? "current" : undefined}>
             {label}
           </Link>
         ))}

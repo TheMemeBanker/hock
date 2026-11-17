@@ -25,9 +25,7 @@ export function DashboardGate({ readyMints }: { readyMints: ReadyMint[] }) {
   if (who && who === INVESTOR_WALLET) {
     return (
       <>
-        <PageIntro title="The HOCK model" kicker="Investor demo, end to end">
-          One coin, from launch to the $50,000 line to a written ticket, with the launcher&apos;s earnings, the lender&apos;s yield and the protocol&apos;s revenue computed live from inputs you can drag. The arithmetic is the program&apos;s; the market is yours to set.
-        </PageIntro>
+        <PageIntro title="How HOCK works" kicker="Investor demo">One coin, start to finish: launch, the $50,000 line, the ticket, and who gets paid.</PageIntro>
         <InvestorDemo wallet={who} />
       </>
     );

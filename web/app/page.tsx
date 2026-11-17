@@ -23,7 +23,7 @@ export default async function Home() {
           </p>
           <div style={{ display: "flex", gap: 12, flexWrap: "wrap" }}>
             <Link className="btn primary" href="/launch">Launch a coin</Link>
-            <Link className="btn line" href="/borrow" style={{ minHeight: 50, fontSize: 14, padding: "0 24px" }}>Borrow against yours</Link>
+            <Link className="btn line" href="/dashboard" style={{ minHeight: 50, fontSize: 14, padding: "0 24px" }}>Borrow against yours</Link>
           </div>
           <div className="mono" style={{ display: "flex", gap: 28, flexWrap: "wrap", fontSize: 12, color: "var(--muted)", letterSpacing: ".04em" }}>
             <span>NON-CUSTODIAL</span>
@@ -61,7 +61,7 @@ export default async function Home() {
             <p style={{ margin: 0, fontSize: 14, lineHeight: 1.65, color: "var(--body)" }}>
               Price attested on chain, capped by a 30-minute TWAP. Repay any time to unlock. If the coin falls to the trigger, the vault sells only enough to make the lender whole and returns the rest.
             </p>
-            <Link className="btn primary" href="/borrow">Hock it</Link>
+            <Link className="btn primary" href="/dashboard">Hock it</Link>
           </div>
         </aside>
       </section>

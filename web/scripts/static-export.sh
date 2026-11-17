@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Build the static (cosmetic) copy of the HOCK site for GitHub Pages.
-# Works in place: the server-only parts (API routes, the /dashboard redirect, ISR revalidation) are set aside,
+# Works in place: the server-only parts (API routes, the /borrow redirect, ISR revalidation) are set aside,
 # `next build` runs with STATIC_EXPORT=1, and the tree is restored on exit. Output: <outdir> (default ./out-static)
 #   bash scripts/static-export.sh [outdir]          (from web/)
 set -euo pipefail
@@ -9,7 +9,7 @@ OUT="${1:-./out-static}"
 SAVE="$(mktemp -d)"
 restore() {
   [ -d "$SAVE/api" ] && rm -rf app/api && mv "$SAVE/api" app/api
-  [ -d "$SAVE/dashboard" ] && rm -rf app/dashboard && mv "$SAVE/dashboard" app/dashboard
+  [ -d "$SAVE/borrow" ] && rm -rf app/borrow && mv "$SAVE/borrow" app/borrow
   [ -d "$SAVE/coin" ] && rm -rf app/coin && mv "$SAVE/coin" app/coin
   [ -f "$SAVE/.env.local" ] && mv "$SAVE/.env.local" .env.local
   if [ -f "$SAVE/files.txt" ]; then while IFS= read -r f; do cp "$SAVE/files/$f" "$f"; done < "$SAVE/files.txt"; fi
@@ -18,7 +18,7 @@ restore() {
 trap restore EXIT
 if sed --version >/dev/null 2>&1; then SEDI=(sed -i); else SEDI=(sed -i ''); fi
 # coin pages are rendered per mint from the database; the static copy has no database, so it ships none
-mv app/api "$SAVE/api"; mv app/dashboard "$SAVE/dashboard"; mv app/coin "$SAVE/coin"
+mv app/api "$SAVE/api"; mv app/borrow "$SAVE/borrow"; mv app/coin "$SAVE/coin"
 # a laptop's .env.local would leak a local database into the static build
 [ -f .env.local ] && mv .env.local "$SAVE/.env.local"
 mkdir -p "$SAVE/files"; : > "$SAVE/files.txt"
