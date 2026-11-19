@@ -1,8 +1,6 @@
 import Link from "next/link";
 import { Lockup } from "./Mark";
-import { XLogo } from "./XLogo";
-
-const X_URL = "https://x.com/HockFinance";
+import { HOCK_CA, HOCK_HREF } from "@/lib/token";
 
 export function Footer() {
   const link = { color: "var(--muted)", fontFamily: "var(--font-mono)", fontSize: 13 } as const;
@@ -17,9 +15,7 @@ export function Footer() {
       <Link href="/docs/terms" style={link}>Terms</Link>
       <Link href="/docs/privacy" style={link}>Privacy</Link>
       <a href="https://github.com/TheMemeBanker/hock" target="_blank" rel="noopener noreferrer" style={link}>Source</a>
-      <a href={X_URL} target="_blank" rel="noopener noreferrer" style={{ ...link, display: "inline-flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
-        <XLogo size={14} /> @HockFinance
-      </a>
+      <a href={HOCK_HREF} {...(HOCK_CA ? { target: "_blank", rel: "noopener noreferrer" } : {})} style={{ ...link, color: "var(--ink)", marginLeft: "auto" }}>$HOCK{HOCK_CA ? "" : " · CA not yet published"}</a>
       <span style={{ flexBasis: "100%", fontSize: 13, color: "var(--muted)", lineHeight: 1.6, maxWidth: "92ch" }}>
         HOCK never holds your keys or funds. Memecoins are volatile; read the risk disclosure before you launch, borrow or lend. Nothing here is financial advice. Every figure on this site is read from chain state when the page loads.
       </span>

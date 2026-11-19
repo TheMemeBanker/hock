@@ -28,8 +28,6 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    site: "@HockFinance",
-    creator: "@HockFinance",
     title: "HOCK — Launch it. Hock it.",
     description: "Launch a coin, clear the gate, borrow SOL against it. Non-custodial, in-vault.",
     images: [`${BASE}/brand/hock-og-1200x630.png`],

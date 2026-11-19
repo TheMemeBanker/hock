@@ -98,15 +98,16 @@ tbody tr:hover td { background: rgba(255, 255, 255, .015); }
 .site-nav a.current { color: var(--accent); }
 .site-wallet { grid-area: wallet; display: flex; align-items: center; gap: 14px; }
 .site-wallet .btn { width: auto; }
-.site-x { display: inline-grid; place-items: center; width: 40px; height: 40px; border-radius: 6px; border: 1px solid var(--line-2); color: var(--body); }
-.site-x:hover { color: var(--ink); border-color: var(--ink); }
+.site-token { display: inline-flex; align-items: center; height: 40px; padding: 0 14px; border-radius: 6px; border: 1px solid var(--line-2); color: var(--ink); font-size: 13px; letter-spacing: 0.02em; }
+.site-token:hover { border-color: var(--accent); color: var(--accent); }
+.ca-copy:hover { border-color: var(--accent); }
 @media (max-width: 760px) {
   .site-header { grid-template-columns: 1fr auto; grid-template-areas: "logo wallet" "nav nav"; padding: 14px 0 8px; }
   .site-logo .wm { font-size: 22px !important; }
   .site-nav { justify-content: space-between; gap: 0; font-size: 12px; border-top: 1px solid var(--line); padding-top: 8px; }
   .site-nav a { padding: 8px 6px; }
   .site-wallet .btn { padding: 8px 12px; font-size: 12px; }
-  .site-x { display: none; }
+  .site-token { display: none; }
 }
 
 /* ---- responsive rules formerly in styled-jsx blocks (not compiled here) ---- */

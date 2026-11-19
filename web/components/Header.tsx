@@ -4,7 +4,7 @@ import Link from "next/link";
 import dynamic from "next/dynamic";
 import { usePathname } from "next/navigation";
 import { Lockup } from "./Mark";
-import { XLogo } from "./XLogo";
+import { HOCK_CA, HOCK_HREF } from "@/lib/token";
 
 const BaseWalletMultiButton = dynamic(
   () => import("@solana/wallet-adapter-react-ui").then((m) => m.BaseWalletMultiButton),
@@ -28,8 +28,6 @@ const NAV = [
   ["/docs", "Docs"],
 ] as const;
 
-export const X_URL = "https://x.com/HockFinance";
-
 export function Header() {
   const path = usePathname() ?? "/";
   return (
@@ -45,7 +43,7 @@ export function Header() {
         ))}
       </nav>
       <div className="site-wallet">
-        <a className="site-x" href={X_URL} target="_blank" rel="noopener noreferrer" aria-label="HOCK on X"><XLogo size={16} /></a>
+        <a className="site-token mono" href={HOCK_HREF} {...(HOCK_CA ? { target: "_blank", rel: "noopener noreferrer" } : {})} title={HOCK_CA ? "$HOCK on pump.fun" : "$HOCK contract address: not yet published"}>$HOCK</a>
         <BaseWalletMultiButton className="btn line" labels={WALLET_LABELS} />
       </div>
     </header>

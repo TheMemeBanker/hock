@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { Header } from "@/components/Header";
+import { HockStrip } from "@/components/HockStrip";
 import { Footer } from "@/components/Footer";
 import { Mark } from "@/components/Mark";
 import { LaunchTrack } from "@/components/LaunchTrack";
@@ -167,12 +168,7 @@ export default async function Home() {
       </section>
 
       <section style={{ paddingBottom: "clamp(40px,6vw,80px)" }}>
-        <div className="ca-strip">
-          <Mark size={28} />
-          <span className="wm" style={{ fontSize: 20, color: "var(--ink)" }}>$HOCK</span>
-          <span>The contract address is published here first. Until it appears on this page, every $HOCK is an impostor.</span>
-          <code className="mono" style={{ marginLeft: "auto", fontSize: 12, color: "var(--muted)", background: "var(--field)", padding: "10px 14px", borderRadius: "var(--radius-sm)", border: "1px solid var(--line)" }}>not yet published</code>
-        </div>
+        <HockStrip />
       </section>
 
       <Footer />
