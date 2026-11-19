@@ -17,7 +17,7 @@ export function HockStrip() {
   const code = { fontSize: 12, background: "var(--field)", padding: "10px 14px", borderRadius: "var(--radius-sm)", border: "1px solid var(--line)" } as const;
   return (
     <div className="ca-strip" id="hock">
-      <Mark size={28} />
+      <Mark size={28} tone="var(--manila)" />
       <span className="wm" style={{ fontSize: 20, color: "var(--ink)" }}>$HOCK</span>
       {HOCK_CA ? (
         <>

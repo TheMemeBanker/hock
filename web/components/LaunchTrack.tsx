@@ -3,7 +3,7 @@ import { Mark } from "./Mark";
 
 /**
  * The empty-board state: instead of a blank table, the track a coin runs on HOCK.
- * Launched -> the $50k line -> collateral ready. The aperture lights up as it crosses.
+ * Launched -> the $50k line -> collateral ready. The tag gets its red seal as it crosses.
  */
 export function LaunchTrack({ compact = false }: { compact?: boolean }) {
   return (

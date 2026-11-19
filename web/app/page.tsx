@@ -15,7 +15,7 @@ export default async function Home() {
       <Header />
 
       <section id="top" className="hero" style={{ display: "flex", flexWrap: "wrap", gap: 48, alignItems: "center", padding: "clamp(48px,7vw,104px) 0 clamp(48px,6vw,88px)" }}>
-        <Mark size={640} tone="var(--ink)" hot="var(--accent)" className="hero-ap" label="" />
+        <Mark size={600} tone="var(--manila)" className="hero-tag" label="" />
         <div style={{ flex: "1 1 560px", minWidth: 0, display: "flex", flexDirection: "column", gap: 28 }}>
           <span className="kicker">Launchpad with built-in lending</span>
           <h1 className="wm hero-h1">Launch it.<br /><em>Hock it.</em></h1>
@@ -36,7 +36,7 @@ export default async function Home() {
         <aside aria-label="How a ticket works" className="readout" style={{ flex: "0 1 440px", minWidth: 0 }}>
           <div className="readout-head">
             <span>Ticket · example</span>
-            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--accent)" }}><Mark size={16} tone="var(--muted)" small /> HOCK</span>
+            <span style={{ display: "inline-flex", alignItems: "center", gap: 8, color: "var(--accent)" }}><Mark size={16} tone="var(--manila)" small /> HOCK</span>
           </div>
           <div className="readout-row">
             <span className="lab">Collateral</span>
